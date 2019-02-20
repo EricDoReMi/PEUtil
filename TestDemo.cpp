@@ -17,7 +17,8 @@ int main(int argc, char* argv[]){
 		//打印可选的PE头
 		PrintOptionHeaders();
 		
-		
+		//打印节表信息
+		PrintSectionHeaders();
 		freePFileBuffer();
 	}
 	

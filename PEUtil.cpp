@@ -133,6 +133,13 @@ PIMAGE_SECTION_HEADER getSectionHeader(){
 	pPEHeader = getPEHeader();
 	pOptionHeader = getOptionHeader();
 	WORD sizeOfOptionHeader=pPEHeader->SizeOfOptionalHeader;
-	pSectionHeader=(PIMAGE_SECTION_HEADER)(pOptionHeader+sizeOfOptionHeader);
+	pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pOptionHeader+sizeOfOptionHeader);
 	return 	pSectionHeader;
+}
+
+//获得节的数量
+WORD getSectionNum(){
+	PIMAGE_FILE_HEADER pPEHeader = NULL;
+	pPEHeader = getPEHeader();
+	return pPEHeader->NumberOfSections;
 }

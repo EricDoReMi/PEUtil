@@ -37,4 +37,7 @@ PIMAGE_OPTIONAL_HEADER32 getOptionHeader();
 //获得节表头
 PIMAGE_SECTION_HEADER getSectionHeader();
 
+//获得节的数量
+WORD getSectionNum();
+
 #endif

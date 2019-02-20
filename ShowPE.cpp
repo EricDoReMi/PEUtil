@@ -45,7 +45,7 @@ VOID PrintOptionHeaders(){
 	printf("ImageBase:%x\n",pOptionHeader->ImageBase);	
 	printf("SectionAlignment:%x\n",pOptionHeader->SectionAlignment);	
 	printf("SizeOfImage:%x\n",pOptionHeader->SizeOfImage);	
-	printf("CheckSum%:x\n",pOptionHeader->CheckSum);	
+	printf("CheckSum:%x\n",pOptionHeader->CheckSum);	
 }
 
 //打印节表信息
@@ -53,12 +53,33 @@ VOID PrintSectionHeaders(){
 	PIMAGE_SECTION_HEADER pSectionHeader = NULL;
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
 	
-	pOptionHeader=getOptionHeader();
-	DWORD sizeOfImage=pOptionHeader->SizeOfImage;
+
 	
 	pSectionHeader=getSectionHeader();
 	
-	
+	WORD sectionNum=getSectionNum();
+
+
+	printf("********************SECTION头********************\n");
+	WORD i=0;
+	for(i=0;i<sectionNum;i++){
+		BYTE names[9]={0};
+		BYTE* p_name=names;
+		p_name=pSectionHeader->Name;
+		printf("-----SectionNum:%d-----\n",i+1);
+		printf("SectionName:%s\n",p_name);
+		printf("Misc:%X\n",pSectionHeader->Misc);
+		printf("SizeOfRawData:%X\n",pSectionHeader->SizeOfRawData);
+		printf("PointerToRawData:%X\n",pSectionHeader->PointerToRawData);
+		printf("PointerToRelocations:%X\n",pSectionHeader->PointerToRelocations);
+		printf("PointerToLinenumbers:%X\n",pSectionHeader->PointerToLinenumbers);
+		printf("NumberOfRelocations:%X\n",pSectionHeader->NumberOfRelocations);
+		printf("NumberOfLinenumbers:%X\n",pSectionHeader->NumberOfLinenumbers);
+		printf("Characteristics:%X\n",pSectionHeader->Characteristics);
+		pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40);
+
+	}
+
 
 }	
 
