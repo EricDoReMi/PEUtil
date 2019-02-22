@@ -3,23 +3,27 @@
 int main(int argc, char* argv[]){
 	
 	//初始化
-	if(InitFileBuffer("Hello.exe") && checkIsPEFile()){
+	char* pathName="Hello.exe";
+	LPVOID pFileBuffer;
+	
+
+	if(ReadPEFile(pathName,&pFileBuffer) && checkIsPEFile(pFileBuffer)){
 		
 		//打印DosHeader
-		PrintDosHeaders();
+		PrintDosHeaders(pFileBuffer);
 
 		//打印NTHeader
-		PrintNTHeaders();
+		PrintNTHeaders(pFileBuffer);
 
 		//打印PEheader
-		PrintPEHeaders();
+		PrintPEHeaders(pFileBuffer);
 
 		//打印可选的PE头
-		PrintOptionHeaders();
+		PrintOptionHeaders(pFileBuffer);
 		
 		//打印节表信息
-		PrintSectionHeaders();
-		freePFileBuffer();
+		PrintSectionHeaders(pFileBuffer);
+		freePBuffer(pFileBuffer);
 	}
 	
 	return 0;

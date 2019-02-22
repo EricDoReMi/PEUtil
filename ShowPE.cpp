@@ -2,9 +2,9 @@
 #include "ShowPE.h"
 
 //打印DosHeader
-VOID PrintDosHeaders(){
+VOID PrintDosHeaders(LPVOID pFileBuffer){
 	PIMAGE_DOS_HEADER pDosHeader = NULL;
-	pDosHeader=getDosHeader();
+	pDosHeader=getDosHeader(pFileBuffer);
 
 	//打印DOC头	
 	printf("********************DOC头********************\n");	
@@ -13,17 +13,17 @@ VOID PrintDosHeaders(){
 }
 
 //打印NTHeader
-VOID PrintNTHeaders(){
+VOID PrintNTHeaders(LPVOID pFileBuffer){
 	PIMAGE_NT_HEADERS pNTHeader = NULL;	
-	pNTHeader=getNTHeader();
+	pNTHeader=getNTHeader(pFileBuffer);
 	printf("********************NT头********************\n");	
 	printf("Signature(PE标志):%x\n",pNTHeader->Signature);
 }
 
 //打印PEheader
-VOID PrintPEHeaders(){
+VOID PrintPEHeaders(LPVOID pFileBuffer){
 	PIMAGE_FILE_HEADER pPEHeader = NULL;
-	pPEHeader=getPEHeader();
+	pPEHeader=getPEHeader(pFileBuffer);
 	printf("********************PE头********************\n");	
 	printf("Machine(运行的平台):%x\n",pPEHeader->Machine);	
 	printf("NumberOfSections(节的数量了):%x\n",pPEHeader->NumberOfSections);	
@@ -31,9 +31,9 @@ VOID PrintPEHeaders(){
 }
 
 //打印可选的PE头
-VOID PrintOptionHeaders(){
+VOID PrintOptionHeaders(LPVOID pFileBuffer){
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
-	pOptionHeader=getOptionHeader();
+	pOptionHeader=getOptionHeader(pFileBuffer);
 	printf("********************OPTIOIN_PE头********************\n");
 	printf("OPTION_PE:%x\n",pOptionHeader->Magic);	
 	printf("SizeOfCode:%x\n",pOptionHeader->SizeOfCode);	
@@ -49,15 +49,15 @@ VOID PrintOptionHeaders(){
 }
 
 //打印节表信息
-VOID PrintSectionHeaders(){
+VOID PrintSectionHeaders(LPVOID pFileBuffer){
 	PIMAGE_SECTION_HEADER pSectionHeader = NULL;
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
 	
 
 	
-	pSectionHeader=getSectionHeader();
+	pSectionHeader=getSectionHeader(pFileBuffer);
 	
-	WORD sectionNum=getSectionNum();
+	WORD sectionNum=getSectionNum(pFileBuffer);
 
 
 	printf("********************SECTION头********************\n");
