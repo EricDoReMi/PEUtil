@@ -172,10 +172,7 @@ DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer){
 	
 	WORD sectionNum=getSectionNum(pImageBuffer);
 	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pImageBuffer,sectionNum);
-	char arr[9]={0};
-	char* p_arr=arr;
-	p_arr=(char*)pLastSectionHeader->Name;
-	printf("%s\n",p_arr);
+
 	DWORD pointerToRawDataLastSection=pLastSectionHeader->PointerToRawData;
 	DWORD sizeOfRawDataLastSection=pLastSectionHeader->SizeOfRawData;
 	DWORD sizeOfNewBuffer=pointerToRawDataLastSection+sizeOfRawDataLastSection;
@@ -262,6 +259,43 @@ DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile){
 //返回转换后的FOA的值  如果失败返回0							
 //**************************************************************************							
 DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
+	if(!checkIsPEFile(pFileBuffer)){
+		printf("RvaToFileOffset Failed---pFileBuffer不是标准PE文件!\n");
+		free(pFileBuffer);
+	
+		pFileBuffer=NULL;
+		return 0;
+	}
+
+	
+	WORD sectionNum=getSectionNum(pFileBuffer);
+	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
+	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
+	DWORD imageBase = POptionPEHeader->ImageBase;
+	DWORD tmpImageHigh=dwRva-imageBase;
+	DWORD i=0;
+	DWORD virtualAddress=0;
+	DWORD virtualAddressNext=0;
+	DWORD indexSection=0;
+	for(i=0;i<sectionNum;i++){
+		
+		virtualAddress=pSectionHeader->VirtualAddress;
+		DWORD misc=pSectionHeader->Misc.VirtualSize;
+		
+		if(tmpImageHigh>=virtualAddress && tmpImageHigh<=(virtualAddress+misc)){
+			indexSection=i+1;
+			//找到了所在节的位置
+			return tmpImageHigh-virtualAddress+(pSectionHeader->PointerToRawData);
+			
+		}
+		
+		pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40);
+	}
+
+	
+
+
+	
 	return 0;
 }
 

@@ -1,10 +1,10 @@
 #include "ShowPE.h"
 
-int main(int argc, char* argv[]){
-	
-	//初始化
-	char* pathName="PETool.exe";
-	char* pathNameDes="Hello2.exe";
+
+void testPrinter(){
+		//初始化
+	char* pathName="Hello.exe";
+
 	LPVOID pFileBuffer=NULL;
 	LPVOID pImageBuffer=NULL;
 	LPVOID pNewFileBuffer=NULL;
@@ -25,6 +25,26 @@ int main(int argc, char* argv[]){
 		
 		//打印节表信息
 		PrintSectionHeaders(pFileBuffer);
+
+		
+		
+		
+	}
+
+
+
+}
+
+void testCopyFile(){
+		//初始化
+	char* pathName="Hello.exe";
+	char* pathNameDes="Hello2.exe";
+	LPVOID pFileBuffer=NULL;
+	LPVOID pImageBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
+
+	if(ReadPEFile(pathName,&pFileBuffer) && checkIsPEFile(pFileBuffer)){
+
 
 		DWORD copySize=0;
 		copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
@@ -50,6 +70,36 @@ int main(int argc, char* argv[]){
 		
 		
 	}
+
+
+	
+	}
+	
+
+void testRvaToFileOffset(){
+	//初始化
+	char* pathName="Hello.exe";
+
+	LPVOID pFileBuffer=NULL;
+
+	if(ReadPEFile(pathName,&pFileBuffer) && checkIsPEFile(pFileBuffer)){
+		
+	
+		DWORD fileOffset=RvaToFileOffset(pFileBuffer,0x401480);
+
+		printf("%X\n",fileOffset);
+	
+	}
+
+	
+}
+
+int main(int argc, char* argv[]){
+
+	testPrinter();
+	testCopyFile();
+	testRvaToFileOffset();
 	
 	return 0;
 }
+
