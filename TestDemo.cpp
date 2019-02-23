@@ -3,9 +3,11 @@
 int main(int argc, char* argv[]){
 	
 	//初始化
-	char* pathName="Hello.exe";
-	LPVOID pFileBuffer;
-	
+	char* pathName="PETool.exe";
+	char* pathNameDes="Hello2.exe";
+	LPVOID pFileBuffer=NULL;
+	LPVOID pImageBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
 
 	if(ReadPEFile(pathName,&pFileBuffer) && checkIsPEFile(pFileBuffer)){
 		
@@ -23,7 +25,30 @@ int main(int argc, char* argv[]){
 		
 		//打印节表信息
 		PrintSectionHeaders(pFileBuffer);
-		freePBuffer(pFileBuffer);
+
+		DWORD copySize=0;
+		copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
+		if(copySize){
+			freePBuffer(pFileBuffer);
+			copySize=CopyImageBufferToNewBuffer(pImageBuffer,&pNewFileBuffer);
+			if(copySize){
+				freePBuffer(pImageBuffer);
+				copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+
+				if(copySize){
+					freePBuffer(pNewFileBuffer);	
+				}else{
+					printf("MemeryTOFile Failed!");
+				}
+			}else{
+				printf("CopyImageBufferToNewBuffer Failed!");
+			}
+		}else{
+			printf("CopyFileBufferToImageBuffer Failed!");
+		}
+		
+		
+		
 	}
 	
 	return 0;

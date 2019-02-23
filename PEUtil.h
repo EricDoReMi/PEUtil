@@ -49,7 +49,7 @@ DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer);
 //返回值说明：							
 //读取失败返回0  否则返回复制的大小							
 //**************************************************************************							
-BOOL MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile);
+DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile);
 //**************************************************************************							
 //RvaToFileOffset:将内存偏移转换为文件偏移							
 //参数说明：							
@@ -65,26 +65,30 @@ void freePBuffer(LPVOID pBuffer);
 
 //检查是不是PE文件
 //return 0 失败 1 成功
-int checkIsPEFile(LPVOID pFileBuffer);
+int checkIsPEFile(LPVOID pBuffer);
 
 //获取Dos文件头
-PIMAGE_DOS_HEADER getDosHeader(LPVOID pFileBuffer);
+PIMAGE_DOS_HEADER getDosHeader(LPVOID pBuffer);
 
 //获得NT文件头
-PIMAGE_NT_HEADERS getNTHeader(LPVOID pFileBuffer);
+PIMAGE_NT_HEADERS getNTHeader(LPVOID pBuffer);
 
 
 //获得PE文件头
-PIMAGE_FILE_HEADER getPEHeader(LPVOID pFileBuffer);
+PIMAGE_FILE_HEADER getPEHeader(LPVOID pBuffer);
 
 
 //获得可选的PE头
-PIMAGE_OPTIONAL_HEADER32 getOptionHeader(LPVOID pFileBuffer);
+PIMAGE_OPTIONAL_HEADER32 getOptionHeader(LPVOID pBuffer);
 
 //获得节表头
-PIMAGE_SECTION_HEADER getSectionHeader(LPVOID pFileBuffer);
+PIMAGE_SECTION_HEADER getSectionHeader(LPVOID pBuffer);
 
 //获得节的数量
-WORD getSectionNum(LPVOID pFileBuffer);
+WORD getSectionNum(LPVOID pBuffer);
+
+//获取节表了
+//index 第几个节表
+PIMAGE_SECTION_HEADER getSection(LPVOID pBuffer,WORD index);
 
 #endif
