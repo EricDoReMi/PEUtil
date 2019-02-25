@@ -275,7 +275,6 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 	DWORD tmpImageHigh=dwRva-imageBase;
 	DWORD i=0;
 	DWORD virtualAddress=0;
-	DWORD virtualAddressNext=0;
 	DWORD indexSection=0;
 	for(i=0;i<sectionNum;i++){
 		
@@ -286,6 +285,57 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 			indexSection=i+1;
 			//找到了所在节的位置
 			return tmpImageHigh-virtualAddress+(pSectionHeader->PointerToRawData);
+			
+		}
+		
+		pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40);
+	}
+
+	
+
+
+	
+	return 0;
+}
+
+//**************************************************************************							
+//FileOffsetToRva:将内存偏移转换为文件偏移							
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwFileOffSet RVA的值							
+//返回值说明：							
+//返回转换后的RVA的值  如果失败返回0							
+//**************************************************************************							
+DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
+	if(!checkIsPEFile(pFileBuffer)){
+		printf("RvaToFileOffset Failed---pFileBuffer不是标准PE文件!\n");
+		free(pFileBuffer);
+	
+		pFileBuffer=NULL;
+		return 0;
+	}
+
+	
+	WORD sectionNum=getSectionNum(pFileBuffer);
+	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
+	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
+	DWORD imageBase = POptionPEHeader->ImageBase;
+
+
+	DWORD i=0;
+	DWORD virtualAddress=0;
+	DWORD indexSection=0;
+	for(i=0;i<sectionNum;i++){
+		
+		virtualAddress=pSectionHeader->VirtualAddress;
+		DWORD misc=pSectionHeader->Misc.VirtualSize;
+		DWORD pointerToRawData=pSectionHeader->PointerToRawData;
+		DWORD sizeOfRawData=pSectionHeader->SizeOfRawData;
+		
+		if(dwFileOffSet>=pointerToRawData && dwFileOffSet<=(pointerToRawData+sizeOfRawData)){
+			indexSection=i+1;
+			//找到了所在节的位置
+			return imageBase+virtualAddress+(dwFileOffSet-pointerToRawData);
 			
 		}
 		

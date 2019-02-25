@@ -60,6 +60,16 @@ DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile);
 //**************************************************************************							
 DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva);
 
+//**************************************************************************							
+//FileOffsetToRva:将内存偏移转换为文件偏移							
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwFileOffSet RVA的值							
+//返回值说明：							
+//返回转换后的RVA的值  如果失败返回0							
+//**************************************************************************							
+DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet);
+
 //释放Buffer
 void freePBuffer(LPVOID pBuffer);
 

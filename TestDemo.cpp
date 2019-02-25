@@ -94,12 +94,30 @@ void testRvaToFileOffset(){
 	
 }
 
+void testFileOffsetToRva(){
+	//≥ı ºªØ
+	char* pathName="TestWin32.exe";
+
+	LPVOID pFileBuffer=NULL;
+
+	if(ReadPEFile(pathName,&pFileBuffer) && checkIsPEFile(pFileBuffer)){
+		
+	
+		DWORD RVA=FileOffsetToRva(pFileBuffer,0x21f92);
+
+		printf("%X\n",RVA);
+	
+	}
+
+	
+}
+
 int main(int argc, char* argv[]){
 
 	testPrinter();
 	testCopyFile();
 	testRvaToFileOffset();
-	
+	testFileOffsetToRva();
 	return 0;
 }
 
