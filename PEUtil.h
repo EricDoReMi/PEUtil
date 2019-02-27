@@ -5,6 +5,8 @@
 #include<stdio.h>
 #include "PEUtil.h"
 
+//全局变量声明
+extern BYTE shellcode[];
 
 //获取文件大小
 int getFileSize(FILE *P_file);
@@ -31,8 +33,9 @@ DWORD ReadPEFile(IN LPSTR lpszFile,OUT LPVOID* pFileBuffer);
 //读取失败返回0  否则返回复制的大小							
 //**************************************************************************
 DWORD CopyFileBufferToImageBuffer(IN LPVOID pFileBuffer,OUT LPVOID* pImageBuffer);
+							
 //**************************************************************************							
-//CopyImageBufferToNewBuffer:将ImageBuffer中的数据复制到新的缓冲区							
+//CopyImageBufferToNewBuffer:将ImageBuffer中的数据复制到新的缓冲区，将ImageBuffer还原为文件的PE格式							
 //参数说明：							
 //pImageBuffer ImageBuffer指针							
 //pNewBuffer NewBuffer指针							
@@ -40,6 +43,7 @@ DWORD CopyFileBufferToImageBuffer(IN LPVOID pFileBuffer,OUT LPVOID* pImageBuffer
 //读取失败返回0  否则返回复制的大小							
 //**************************************************************************							
 DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer);
+						
 //**************************************************************************							
 //MemeryTOFile:将内存中的数据复制到文件							
 //参数说明：							
@@ -50,6 +54,7 @@ DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer);
 //读取失败返回0  否则返回复制的大小							
 //**************************************************************************							
 DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile);
+						
 //**************************************************************************							
 //RvaToFileOffset:将内存偏移转换为文件偏移							
 //参数说明：							
@@ -94,11 +99,61 @@ PIMAGE_OPTIONAL_HEADER32 getOptionHeader(LPVOID pBuffer);
 //获得节表头
 PIMAGE_SECTION_HEADER getSectionHeader(LPVOID pBuffer);
 
+//获取节表了
+//index 第几个节表
+//返回值：成功返回该节表头，失败则返回NULL
+PIMAGE_SECTION_HEADER getSection(LPVOID pBuffer,WORD index);
+
 //获得节的数量
 WORD getSectionNum(LPVOID pBuffer);
 
-//获取节表了
-//index 第几个节表
-PIMAGE_SECTION_HEADER getSection(LPVOID pBuffer,WORD index);
+
+
+//将ShellCode添加到某个Section中
+//pathName:源文件路径
+//pathNameDes:目标文件路径
+//pshellCode:shellCode地址
+//shellCodeLength:shellCode的长度
+//sectionNum:节的地址了
+//返回值:成功返回1,失败返回0
+DWORD addShellCodeIntoSection(char* pathName,char* pathNameDes,PBYTE pshellCode,DWORD shellCodeLength,WORD sectionNum);
+
+//判断Section是否足够存储shellCode的代码
+//pSectionHeader:要放入代码的section的Header
+//shellCodeLength:代码区长度
+//返回值:成功则返回1，失败则返回0
+DWORD checkSectionHeaderCouldWriteCode(IN PIMAGE_SECTION_HEADER pSectionHeader,DWORD shellCodeLength);
+
+//从ImageBuffer中获得能够注入代码的位置
+//返回注入的代码在ImageBuffer中的位置了
+PBYTE getCodeBeginFromImageBuffer(IN LPVOID pImageBuffer,IN PIMAGE_SECTION_HEADER pSectionHeader);
+
+//将ImageBuffer中的地址转换为运行时的地址
+//pImageBuffer
+//imageBufferRunAddr在ImageBuffer中的地址了
+//返回运行时的地址
+DWORD changeImageBufferAddressToRunTimeAddress(IN LPVOID pImageBuffer,DWORD imageBufferRunAddr);
+
+//将ImageBuffer中的地址转换为E8或E9指令后面跳转的地址的硬编码
+//pImageBuffer
+//imageBufferRunAddr在ImageBuffer中的地址了
+//E8E9RunTimeAddress:E8或E9指令运行时的地址
+DWORD changeE8E9AddressFromImageBuffer(IN LPVOID pImageBuffer,DWORD imageBufferRunAddr,DWORD E8E9RunTimeAddress);
+
+//将RunTImeBuffer中的地址转换为E8或E9指令后面跳转的地址的硬编码
+//E8E9RunTimeAddress:E8或E9指令运行时的地址
+//rumTimeAddress:要转换的运行时地址
+//返回：转换后的硬编码地址
+DWORD changeE8E9AddressFromRunTimeBuffer(DWORD E8E9RunTimeAddress,DWORD rumTimeAddress);
+
+//获得程序运行时入口的地址
+//pBuffer
+//返回入口地址
+PBYTE getEntryRunTimeAddress(LPVOID pBuffer);
+
+//修改程序运行时入口地址
+//pImageBuffer
+//imageBufferRunAddress在ImageBuffer中的地址了
+void changeEntryPosByImageBufferAddress(LPVOID pImageBuffer,DWORD imageBufferRunAddress);
 
 #endif

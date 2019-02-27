@@ -50,14 +50,13 @@ DWORD ReadPEFile(IN LPSTR lpszFile,OUT LPVOID* pFileBuffer)
 		printf("ReadPEFile  Failed---读取PE文件后分配空间失败%s!\n",lpszFile);
 		fclose(pFile);
 		pFile=NULL;
-		pFileBufferTmp=NULL;
 		return 0;
 	}	
 
 	memset(pFileBufferTmp,0,fileSize);
 
 	//将文件数据读取到缓冲区	
-	size_t n = fread(pFileBufferTmp, 1, fileSize, pFile);	
+	DWORD n = (DWORD)fread(pFileBufferTmp, fileSize, 1, pFile);	
 	if(!n)	
 	{	
 		printf("ReadPEFile Failed---读取PE文件数据失败,%s!\n",lpszFile);
@@ -81,7 +80,7 @@ DWORD ReadPEFile(IN LPSTR lpszFile,OUT LPVOID* pFileBuffer)
 	pFile=NULL;
 	*pFileBuffer=pFileBufferTmp;
 	printf("ReadPEFile successed,%s!\n",lpszFile);
-    return (DWORD)n;		
+    return n;		
 	
 }
 
@@ -94,11 +93,9 @@ DWORD ReadPEFile(IN LPSTR lpszFile,OUT LPVOID* pFileBuffer)
 //读取失败返回0  否则返回复制的大小							
 //**************************************************************************
 DWORD CopyFileBufferToImageBuffer(IN LPVOID pFileBuffer,OUT LPVOID* pImageBuffer){
+
 	if(!checkIsPEFile(pFileBuffer)){
 		printf("CopyFileBufferToImageBuffer Failed---pFileBuffer不是标准PE文件!\n");
-		free(pFileBuffer);
-	
-		pFileBuffer=NULL;
 		return 0;
 	}
 
@@ -110,10 +107,10 @@ DWORD CopyFileBufferToImageBuffer(IN LPVOID pFileBuffer,OUT LPVOID* pImageBuffer
 	WORD sectionNum=getSectionNum(pFileBuffer);
 	
 	pImageBufferTmp=malloc(sizeOfImage);
-	if(!pImageBufferTmp)	
-	{	
-		printf("malloc PImageBuffer失败! ");
-		
+	if(!pImageBufferTmp){	
+
+		printf("CopyFileBufferToImageBuffer---malloc PImageBuffer失败!\n");
+
 		return 0;
 	}
 	
@@ -142,7 +139,7 @@ DWORD CopyFileBufferToImageBuffer(IN LPVOID pFileBuffer,OUT LPVOID* pImageBuffer
 			*((char*)pImageBufferTmp+virtualAddress+j)=*((char*)pFileBuffer+pointerToRawData+j);
 		}
 		
-		pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40);
+		pSectionHeader=pSectionHeader+1;
 
 	}
 
@@ -161,9 +158,6 @@ DWORD CopyFileBufferToImageBuffer(IN LPVOID pFileBuffer,OUT LPVOID* pImageBuffer
 DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer){
 	if(!checkIsPEFile(pImageBuffer)){
 		printf("CopyImageBufferToNewBuffer Failed---pImageBuffer不是标准PE文件!\n");
-		free(pImageBuffer);
-	
-		pImageBuffer=NULL;
 		return 0;
 	}
 	LPVOID pNewBufferTmp=NULL;
@@ -181,7 +175,8 @@ DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer){
 	pNewBufferTmp=malloc(sizeOfNewBuffer);
 	if(!pNewBufferTmp)	
 	{	
-		printf("malloc pNewBufferTmp失败! ");
+
+		printf("CopyImageBufferToNewBuffer---malloc pNewBufferTmp失败!\n ");
 		
 		return 0;
 	}
@@ -213,7 +208,7 @@ DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer){
 			*((char*)pNewBufferTmp+pointerToRawData+j)=*((char*)pImageBuffer+virtualAddress+j);
 		}
 		
-		pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40);
+		pSectionHeader=pSectionHeader+1;
 
 	}
 
@@ -233,20 +228,27 @@ DWORD CopyImageBufferToNewBuffer(IN LPVOID pImageBuffer,OUT LPVOID* pNewBuffer){
 DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile){
 	if(!checkIsPEFile(pMemBuffer)){
 		printf("CopyImageBufferToNewBuffer Failed---pMemBuffer不是标准PE文件,%s!\n",lpszFile);
-		free(pMemBuffer);
-		pMemBuffer=NULL;
 		return 0;
 	}
 	FILE *p_file=NULL;
 	p_file=fopen(lpszFile,"wb");
 	if(p_file){
-		DWORD writeSize=(DWORD)fwrite(pMemBuffer,size,1,p_file);
+		DWORD writeSize=(DWORD)fwrite(pMemBuffer,1,size,p_file);
 		
 		fclose(p_file);
 		p_file=NULL;
 		
+
+		if(!writeSize){
+
+				printf("MemeryTOFile---Write File failed!\n");
+				return 0;
+		}
+		
 		return writeSize;
 	}
+
+		printf("MemeryTOFile---open File failed!\n");
 		return 0;
 		
 }							
@@ -261,9 +263,6 @@ DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile){
 DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 	if(!checkIsPEFile(pFileBuffer)){
 		printf("RvaToFileOffset Failed---pFileBuffer不是标准PE文件!\n");
-		free(pFileBuffer);
-	
-		pFileBuffer=NULL;
 		return 0;
 	}
 
@@ -288,11 +287,8 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 			
 		}
 		
-		pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40);
+		pSectionHeader=pSectionHeader+1;
 	}
-
-	
-
 
 	
 	return 0;
@@ -309,9 +305,7 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
 	if(!checkIsPEFile(pFileBuffer)){
 		printf("RvaToFileOffset Failed---pFileBuffer不是标准PE文件!\n");
-		free(pFileBuffer);
-	
-		pFileBuffer=NULL;
+
 		return 0;
 	}
 
@@ -339,11 +333,8 @@ DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
 			
 		}
 		
-		pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40);
+		pSectionHeader=pSectionHeader+1;
 	}
-
-	
-
 
 	
 	return 0;
@@ -352,10 +343,9 @@ DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
 //释放Buffer
 void freePBuffer(LPVOID pBuffer){
 	
-	if(pBuffer){
 		free(pBuffer);
 		pBuffer=NULL;
-	}
+	
 }
 
 //检查是不是PE文件
@@ -365,7 +355,7 @@ int checkIsPEFile(LPVOID pBuffer){
 	if(*((PWORD)pBuffer) != IMAGE_DOS_SIGNATURE)	
 	{	
 		printf("不是有效的MZ标志\n");
-		freePBuffer(pBuffer);
+		
 		return 0; 
 	}
 	PIMAGE_DOS_HEADER pDosHeader = NULL;
@@ -373,11 +363,12 @@ int checkIsPEFile(LPVOID pBuffer){
 		//判断是否是有效的PE标志	
 	if(*((PDWORD)((DWORD)pBuffer+pDosHeader->e_lfanew)) != IMAGE_NT_SIGNATURE)	
 	{	
+		
 		printf("不是有效的PE标志\n");
-		free(pBuffer);
+		
 		return 0;
 	}
-
+	
 	return 1;
 }
 
@@ -433,6 +424,7 @@ PIMAGE_SECTION_HEADER getSectionHeader(LPVOID pBuffer){
 
 //获取节表了
 //index 第几个节表
+//返回值：成功返回该节表头，失败则返回NULL
 PIMAGE_SECTION_HEADER getSection(LPVOID pBuffer,WORD index){
 	PIMAGE_SECTION_HEADER pSectionHeader = NULL;
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
@@ -448,7 +440,7 @@ PIMAGE_SECTION_HEADER getSection(LPVOID pBuffer,WORD index){
 		return NULL;
 	}
 
-	pSectionHeader=(PIMAGE_SECTION_HEADER)((char*)pSectionHeader+40*(index-1));
+	pSectionHeader=pSectionHeader+(index-1);
 	
 	return pSectionHeader;
 
@@ -462,3 +454,134 @@ WORD getSectionNum(LPVOID pBuffer){
 }
 
 
+
+//将ShellCode添加到某个Section中
+//pathName:源文件路径
+//pathNameDes:目标文件路径
+//pshellCode:shellCode地址
+//shellCodeLength:shellCode的长度
+//sectionNum:节的地址了
+//返回值:成功返回1,失败返回0
+DWORD addShellCodeIntoSection(char* pathName,char* pathNameDes,PBYTE pshellCode,DWORD shellCodeLength,WORD sectionNum){
+
+	LPVOID pFileBuffer=NULL;
+	LPVOID pImageBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return 0;
+	}
+
+	DWORD copySize=0;
+
+	//FileBufferToImageBuffer
+	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
+	
+	if(!copySize){
+		freePBuffer(pFileBuffer);
+		printf("addShellCodeIntoSection---CopyFileBufferToImageBuffer Failed!\n");	
+		return 0;
+	}
+	
+	PIMAGE_SECTION_HEADER pSectionHeader=getSection(pFileBuffer,sectionNum);
+	
+	if(!pSectionHeader){
+		freePBuffer(pFileBuffer);	
+		freePBuffer(pImageBuffer);
+		printf("addShellCodeIntoSection Failed!---SectionNum:%d 不存在\n",sectionNum);	
+		return 0;
+	}
+
+	if(!checkSectionHeaderCouldWriteCode(pSectionHeader,shellCodeLength)){
+		freePBuffer(pFileBuffer);	
+		freePBuffer(pImageBuffer);
+		printf("addShellCodeIntoSection Failed!---Section:%d 没有足够的空间存放shellCode\n",sectionNum);
+	}
+
+
+	PBYTE pcodeBegin=NULL;
+	pcodeBegin=getCodeBeginFromImageBuffer(pImageBuffer,pSectionHeader);
+	
+
+	//将shellCode复制到ImageBuffer对应section中
+	memcpy(pcodeBegin,pshellCode,shellCodeLength);
+
+	return 1;
+}
+
+
+//判断Section是否足够存储shellCode的代码
+//pSectionHeader:要放入代码的section的Header
+//shellCodeLength:代码区长度
+//返回值:成功则返回1，失败则返回0
+DWORD checkSectionHeaderCouldWriteCode(IN PIMAGE_SECTION_HEADER pSectionHeader,DWORD shellCodeLength){
+	if(((pSectionHeader->SizeOfRawData)-(pSectionHeader->Misc.VirtualSize))<shellCodeLength){
+		return 0;
+	}
+	return 1;
+}
+
+
+
+//从ImageBuffer中获得能够注入代码的位置
+//返回注入的代码在ImageBuffer中的位置了
+PBYTE getCodeBeginFromImageBuffer(IN LPVOID pImageBuffer,IN PIMAGE_SECTION_HEADER pSectionHeader){
+	PBYTE pcodeBegin=NULL;
+	pcodeBegin=(PBYTE)((DWORD)pImageBuffer+pSectionHeader->VirtualAddress+pSectionHeader->Misc.VirtualSize);
+	return pcodeBegin;
+}
+
+//将ImageBuffer中的地址转换为运行时的地址
+//pImageBuffer
+//imageBufferRunAddr在ImageBuffer中的地址了
+//返回运行时的地址
+DWORD changeImageBufferAddressToRunTimeAddress(IN LPVOID pImageBuffer,DWORD imageBufferRunAddr){
+	DWORD callAddressTo=0;
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader = getOptionHeader(pImageBuffer);
+	callAddressTo=((pOptionHeader->ImageBase)+(imageBufferRunAddr-(DWORD)pImageBuffer));
+	
+	return callAddressTo;
+	
+}
+
+//将ImageBuffer中的地址转换为E8或E9指令后面跳转的地址的硬编码
+//pImageBuffer
+//imageBufferRunAddr在ImageBuffer中的地址了
+//E8E9RunTimeAddress:E8或E9指令运行时的地址
+DWORD changeE8E9AddressFromImageBuffer(IN LPVOID pImageBuffer,DWORD imageBufferRunAddr,DWORD E8E9RunTimeAddress){
+	DWORD runTimeAddress=changeImageBufferAddressToRunTimeAddress(pImageBuffer,imageBufferRunAddr);
+	DWORD returnAddressTo=changeE8E9AddressFromRunTimeBuffer(E8E9RunTimeAddress,runTimeAddress);
+	return returnAddressTo;
+	
+}
+
+//将RunTImeBuffer中的地址转换为E8或E9指令后面跳转的地址的硬编码
+//E8E9RunTimeAddress:E8或E9指令运行时的地址
+//rumTimeAddress:要转换的运行时地址
+//返回：转换后的硬编码地址
+DWORD changeE8E9AddressFromRunTimeBuffer(DWORD E8E9RunTimeAddress,DWORD rumTimeAddress){
+	DWORD returnAddress=0;
+	returnAddress=rumTimeAddress-(E8E9RunTimeAddress+5);
+	return returnAddress;
+	
+}
+
+//获得程序运行时入口的地址
+//pBuffer
+//返回入口地址
+PBYTE getEntryRunTimeAddress(LPVOID pBuffer){
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader= getOptionHeader(pBuffer);
+
+	return (PBYTE)(pOptionHeader->ImageBase+pOptionHeader->AddressOfEntryPoint);
+
+}
+
+//修改程序运行时入口地址
+//pImageBuffer
+//imageBufferRunAddress在ImageBuffer中的地址了
+void changeEntryPosByImageBufferAddress(LPVOID pImageBuffer,DWORD imageBufferRunAddress){
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader= getOptionHeader(pImageBuffer);
+	pOptionHeader->AddressOfEntryPoint=imageBufferRunAddress-(DWORD)pImageBuffer;
+}
