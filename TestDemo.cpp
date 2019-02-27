@@ -4,7 +4,7 @@
 #define FILEPATH_OUT     "TestWin32Out.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
 #define MESSAGEBOXADDR    0x755AFDAE                    //MessageBox地址，每次开机都会变化
-#define SECTIONNUM        0x1;                          //要向哪个目标Section添加代码了
+#define SECTIONNUM        0x5;                          //要向哪个目标Section添加代码了
 
 //要嵌入的代码
 BYTE shellCode[]={
@@ -197,8 +197,16 @@ void testAddCodeIntoSection(){
 	
 	*(PDWORD)(pcodeBegin+0xE)=jmpAddress;
 
+	//修改Section权限为可读可写可执行
+	DWORD changeSectionCharacteristicsResult=changeSectionCharacteristics(pImageBuffer,sectionNum,0x60000020);
+	if(!changeSectionCharacteristicsResult){
+		printf("changeSectionCharacteristics Failed\n");
+	}
+
 	//修改PE的入口地址
 	changeEntryPosByImageBufferAddress(pImageBuffer,(DWORD)pcodeBegin);
+
+	
 	
 	LPVOID pNewBuffer=NULL;
 	

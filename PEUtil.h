@@ -156,4 +156,11 @@ PBYTE getEntryRunTimeAddress(LPVOID pBuffer);
 //imageBufferRunAddress在ImageBuffer中的地址了
 void changeEntryPosByImageBufferAddress(LPVOID pImageBuffer,DWORD imageBufferRunAddress);
 
+//修改section的权限
+//pBuffer
+//sectionNum Section的地址
+//characteristics：具体的权限，如0x60000020
+//成功，返回1，失败，返回0
+DWORD changeSectionCharacteristics(LPVOID pBuffer,WORD sectionNum,DWORD characteristics);
+
 #endif

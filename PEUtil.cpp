@@ -507,6 +507,26 @@ DWORD addShellCodeIntoSection(char* pathName,char* pathNameDes,PBYTE pshellCode,
 	//将shellCode复制到ImageBuffer对应section中
 	memcpy(pcodeBegin,pshellCode,shellCodeLength);
 
+	LPVOID pNewBuffer=NULL;
+	
+	
+	copySize=CopyImageBufferToNewBuffer(pImageBuffer,&pNewBuffer);
+	
+	freePBuffer(pImageBuffer);
+
+	if(!copySize){
+		printf("CopyImageBufferToNewBuffer Failed!\n");
+		return 0;
+	}
+
+	copySize=MemeryTOFile(pNewBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return 0;
+	}
+
 	return 1;
 }
 
@@ -516,7 +536,7 @@ DWORD addShellCodeIntoSection(char* pathName,char* pathNameDes,PBYTE pshellCode,
 //shellCodeLength:代码区长度
 //返回值:成功则返回1，失败则返回0
 DWORD checkSectionHeaderCouldWriteCode(IN PIMAGE_SECTION_HEADER pSectionHeader,DWORD shellCodeLength){
-	if(((pSectionHeader->SizeOfRawData)-(pSectionHeader->Misc.VirtualSize))<shellCodeLength){
+	if((pSectionHeader->SizeOfRawData<pSectionHeader->Misc.VirtualSize) || ((pSectionHeader->SizeOfRawData-pSectionHeader->Misc.VirtualSize)<shellCodeLength)){
 		return 0;
 	}
 	return 1;
@@ -584,4 +604,21 @@ PBYTE getEntryRunTimeAddress(LPVOID pBuffer){
 void changeEntryPosByImageBufferAddress(LPVOID pImageBuffer,DWORD imageBufferRunAddress){
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader= getOptionHeader(pImageBuffer);
 	pOptionHeader->AddressOfEntryPoint=imageBufferRunAddress-(DWORD)pImageBuffer;
+}
+
+//修改section的权限
+//pBuffer
+//sectionNum Section的地址
+//characteristics：具体的权限，如0x60000020
+//成功，返回1，失败，返回0
+DWORD changeSectionCharacteristics(LPVOID pBuffer,WORD sectionNum,DWORD characteristics){
+	PIMAGE_SECTION_HEADER pSectionHeader=getSection(pBuffer,sectionNum);
+	if(pSectionHeader){
+		pSectionHeader->Characteristics=characteristics;
+		return 1;
+	}else{
+		printf("changeSectionCharacteristics Failed!\n");
+		return 0;
+	}
+
 }
