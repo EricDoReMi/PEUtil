@@ -1,9 +1,9 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "TestWin32OUT.exe"                //输入文件路径
-#define FILEPATH_OUT     "TestWin32OUTAdd.exe"             //输出文件路径
+#define FILEPATH_IN      "TestWin32Out.exe"              //输入文件路径
+#define FILEPATH_OUT     "TestWin32Out.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
-#define MESSAGEBOXADDR    0x74D3FDAE                    //MessageBox地址，每次开机都会变化
+#define MESSAGEBOXADDR    0x76DAFDAE                    //MessageBox地址，每次开机都会变化
 #define SECTIONNUM        0x7;                          //要向哪个目标Section添加代码了
 
 //要嵌入的代码
@@ -234,7 +234,7 @@ void testAddCodeIntoSection(){
 void testAddNewSection(){
 	char* pathName=FILEPATH_IN;
 	char* pathNameDes=FILEPATH_OUT;
-	DWORD sizeOfNewSection=2000;
+	DWORD sizeOfNewSection=5000;
 	DWORD characteristics=0x60000020;
 
 	
@@ -305,14 +305,78 @@ void testAddNewSection(){
 	return;
 }
 
+//扩大最后一个Section
+void testExtendTheLastSection(){
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+	DWORD addSizeNew=5000;
+
+
+	
+	LPVOID pFileBuffer=NULL;
+	LPVOID pImageBuffer=NULL;
+	LPVOID pNewImageBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	DWORD copySize=0;
+
+	//FileBufferToImageBuffer
+	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
+	freePBuffer(pFileBuffer);
+	if(!copySize){
+		
+		printf("addShellCodeIntoSection---CopyFileBufferToImageBuffer Failed!\n");	
+		return ;
+	}
+
+
+	//扩大最后一个节了
+	DWORD checkExtendLastSection=extendTheLastSection(pImageBuffer,addSizeNew,&pNewImageBuffer);
+	
+	freePBuffer(pImageBuffer);
+
+	if(!checkExtendLastSection){
+		printf("extendLastSection Failed!\n");
+		return;
+	}
+	
+	
+
+	copySize=CopyImageBufferToNewBuffer(pNewImageBuffer,&pNewFileBuffer);
+	
+	freePBuffer(pNewImageBuffer);
+
+	if(!copySize){
+		printf("CopyImageBufferToNewBuffer Failed!\n");
+		return;
+	}
+
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+	return;
+}
+
+
 int main(int argc, char* argv[]){
 
 	//testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
-	testAddCodeIntoSection();
+	//testAddCodeIntoSection();
 	//testAddNewSection();
+	testExtendTheLastSection();
 	return 0;
 }
 

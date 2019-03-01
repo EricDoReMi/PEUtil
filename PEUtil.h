@@ -187,6 +187,13 @@ DWORD checkCanAddSection(IN LPVOID pBuffer);
 DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characteristics,OUT LPVOID* pNewImageBuffer);
 
 
+//扩展最后一个节表
+//pBuffer
+//addSize,增加的字节数
+//pNewBuffer返回成功后newBuffer地址
+//返回值 1成功 0失败
+DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* pNewImageBuffer);
+
 //将changeNumber改为baseNumber的整数倍
 DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber);
 

@@ -709,9 +709,9 @@ DWORD checkCanAddSection(IN LPVOID pBuffer){
 
 }
 
-//新增一个节表,权限为
+//新增一个节表
 //pBuffer
-//sizeOfNewSection,新增的节表占多少
+//sizeOfNewSection,新增的字节数
 //pNewBuffer返回成功后newBuffer地址
 //characteristics：具体的权限，如0x60000020
 //返回值 1成功 0失败
@@ -770,13 +770,14 @@ DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characte
 	//修改新增节表名字
 	BYTE names[8]={'.','A','D','D',0};
 	BYTE* pName=pNewSectionHeader->Name;
-	pName=names;
+	memcpy(pName,names,8);
 	
 	//修改新增节表属性
 	pNewSectionHeader->PointerToRawData=pLastSectionHeader->PointerToRawData+pLastSectionHeader->SizeOfRawData;
 	pNewSectionHeader->SizeOfRawData=sizeOfNewSection;
 	pNewSectionHeader->VirtualAddress=sizeOfImage;
 	pNewSectionHeader->Characteristics=characteristics;
+	pNewSectionHeader->Misc.VirtualSize=sizeOfNewSection-sectionAlignment+1;
 
 	*pNewImageBuffer=pNewImageBufferTmp;
 	
@@ -784,6 +785,80 @@ DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characte
 	
 	return 1;
 }
+
+
+//扩展最后一个节表
+//pBuffer
+//addSize,增加的字节数
+//pNewBuffer返回成功后newBuffer地址
+//返回值 1成功 0失败
+DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* pNewImageBuffer){
+	//获得optionHeader中所需要的数据
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pImageBuffer);
+	DWORD sizeOfImage=pOptionHeader->SizeOfImage;
+	DWORD sectionAlignment=pOptionHeader->SectionAlignment;
+
+	//获得FileHeader中所需要的数据
+	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pImageBuffer);
+	WORD sectionNum=fileHeader->NumberOfSections;
+
+	//获得最后一个节表
+	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pImageBuffer,sectionNum);
+	DWORD sizeOfRowDataLastSection=pLastSectionHeader->SizeOfRawData;
+	
+	//修改addSize
+	DWORD sizeOfNewSection=changeNumberByBase(sectionAlignment,addSizeNew);
+
+	DWORD newBufferSize=sizeOfImage+sizeOfNewSection;
+
+	//申请内存用于存储新的pBuffer
+	LPVOID pNewImageBufferTmp=NULL;
+	pNewImageBufferTmp=malloc(newBufferSize);
+
+	if(!pNewImageBufferTmp)	
+	{	
+
+		printf("extendTheLastSection---malloc pNewImageBufferTmp失败!\n ");
+		
+		return 0;
+	}
+	
+	memset(pNewImageBufferTmp,0,newBufferSize);
+	
+	
+
+	//将pBuffer的数据读入到pNewBufferTmp
+	memcpy(pNewImageBufferTmp,pImageBuffer,sizeOfImage);
+
+	//修改pNewImageBufferTmp的SizeOfImage
+	pOptionHeader=getOptionHeader(pNewImageBufferTmp);
+	pOptionHeader->SizeOfImage=newBufferSize;
+	
+	//获得pNewImageBufferTmp最后一个节表
+	pLastSectionHeader=getSection(pNewImageBufferTmp,sectionNum);
+
+	//修改sizeOfImage
+	pOptionHeader=getOptionHeader(pNewImageBufferTmp);
+	pOptionHeader->SizeOfImage=newBufferSize;
+	
+	
+	//修改最后一个节表名字
+	BYTE names[8]={'.','E','X','T','E','N','D',0};
+	BYTE* pName=pLastSectionHeader->Name;
+	memcpy(pName,names,8);
+	
+	//修改最后一个节表属性
+	pLastSectionHeader->SizeOfRawData+=sizeOfNewSection;
+	pLastSectionHeader->Misc.VirtualSize=pLastSectionHeader->SizeOfRawData-sectionAlignment+1;
+	*pNewImageBuffer=pNewImageBufferTmp;
+	
+
+	
+	return 1;
+}
+
+
 
 //将changeNumber改为baseNumber的整数倍
 //baseNum:基数
