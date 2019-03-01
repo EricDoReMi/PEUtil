@@ -163,4 +163,9 @@ void changeEntryPosByImageBufferAddress(LPVOID pImageBuffer,DWORD imageBufferRun
 //成功，返回1，失败，返回0
 DWORD changeSectionCharacteristics(LPVOID pBuffer,WORD sectionNum,DWORD characteristics);
 
+//在pBuffer中将PE的NT头提升到Dos头下
+//pBuffer
+//返回值:Dos头下的间隙的大小，0:Dos头下没有间隙
+DWORD topPENTHeader(IN LPVOID pBuffer);
+
 #endif

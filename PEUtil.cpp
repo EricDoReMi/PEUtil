@@ -622,3 +622,54 @@ DWORD changeSectionCharacteristics(LPVOID pBuffer,WORD sectionNum,DWORD characte
 	}
 
 }
+
+//在pBuffer中将PE的NT头提升到Dos头下
+//pBuffer
+//返回值:Dos头下的间隙的大小，0:Dos头下没有间隙
+DWORD topPENTHeader(IN LPVOID pBuffer){
+	DWORD copySize=0;
+	PIMAGE_DOS_HEADER dosHeader = getDosHeader(pBuffer);
+	PIMAGE_NT_HEADERS ntHeader = getNTHeader(pBuffer);
+	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pBuffer);
+	WORD sectionNum=getSectionNum(pBuffer);
+	//Dos废数据字段的开头
+	DWORD endDosPointNext=(DWORD)pBuffer+sizeof(IMAGE_DOS_HEADER);
+
+
+	copySize=0;
+
+	if((DWORD)ntHeader>endDosPointNext || (DWORD)ntHeader==endDosPointNext){
+		copySize=(DWORD)ntHeader-endDosPointNext;
+	}else{
+		printf("topPENTHeader failed---ntHeader<endDosPointNext");
+
+	}
+
+	if(!copySize && sectionNum<1){
+		return copySize;
+	}
+	
+	//获得第一个节表头
+	PIMAGE_SECTION_HEADER pSectionHeader1 = getSection(pBuffer,1);
+
+	//提升NT头，并将原NT头剩余的部分置0
+	*((PIMAGE_NT_HEADERS)endDosPointNext)=*ntHeader;
+	
+	PIMAGE_SECTION_HEADER newPSectionHeader1=(PIMAGE_SECTION_HEADER)((PIMAGE_NT_HEADERS)endDosPointNext+1);
+	int i=0;
+
+	for(i=0;i<sectionNum;i++){
+		*(newPSectionHeader1+i)=*(pSectionHeader1+i);
+	}
+
+
+	char* fillZeroStart=(char*)(newPSectionHeader1+sectionNum);
+
+	for(i=0;i<copySize;i++){
+		*(fillZeroStart+i)=0;
+	}
+	
+	dosHeader->e_lfanew=(endDosPointNext-(DWORD)pBuffer);
+
+	return copySize;
+}

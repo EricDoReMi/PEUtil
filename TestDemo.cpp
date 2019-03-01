@@ -1,7 +1,7 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "TestWin32.exe"                //输入文件路径
-#define FILEPATH_OUT     "TestWin32Out.exe"             //输出文件路径
+#define FILEPATH_IN      "Hello.exe"                //输入文件路径
+#define FILEPATH_OUT     "HelloOut.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
 #define MESSAGEBOXADDR    0x755AFDAE                    //MessageBox地址，每次开机都会变化
 #define SECTIONNUM        0x5;                          //要向哪个目标Section添加代码了
@@ -230,13 +230,69 @@ void testAddCodeIntoSection(){
 
 }
 
+//新增一个节
+void testAddNewSection(){
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+	PBYTE pshellCode=shellCode;
+	DWORD shellCodeLength=SHELLCODELENGTH;
+	WORD sectionNum=SECTIONNUM;
+	DWORD messageBoxAddress=MESSAGEBOXADDR;
+	
+	LPVOID pFileBuffer=NULL;
+	LPVOID pImageBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	DWORD copySize=0;
+
+	//FileBufferToImageBuffer
+	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
+
+	if(!copySize){
+		freePBuffer(pFileBuffer);
+		printf("addShellCodeIntoSection---CopyFileBufferToImageBuffer Failed!\n");	
+		return ;
+	}
+	
+	copySize=topPENTHeader(pImageBuffer);
+	printf("topPENTHeader---%d\n",copySize);
+
+	LPVOID pNewBuffer=NULL;
+	
+	
+	copySize=CopyImageBufferToNewBuffer(pImageBuffer,&pNewBuffer);
+	
+	freePBuffer(pImageBuffer);
+
+	if(!copySize){
+		printf("CopyImageBufferToNewBuffer Failed!\n");
+		return;
+	}
+
+	copySize=MemeryTOFile(pNewBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+	return;
+}
+
 int main(int argc, char* argv[]){
 
 	//testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
-	testAddCodeIntoSection();
+	//testAddCodeIntoSection();
+	testAddNewSection();
 	return 0;
 }
 
