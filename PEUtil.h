@@ -163,9 +163,32 @@ void changeEntryPosByImageBufferAddress(LPVOID pImageBuffer,DWORD imageBufferRun
 //成功，返回1，失败，返回0
 DWORD changeSectionCharacteristics(LPVOID pBuffer,WORD sectionNum,DWORD characteristics);
 
-//在pBuffer中将PE的NT头提升到Dos头下
+//在pBuffer中将PE的NT头和Section表头提升到Dos头下
 //pBuffer
 //返回值:Dos头下的间隙的大小，0:Dos头下没有间隙
-DWORD topPENTHeader(IN LPVOID pBuffer);
+DWORD topPENTAndSectionHeader(IN LPVOID pBuffer);
+
+//获得节表的最后一个字节的下一个字节的地址
+//pBuffer
+//返回值:LPVOID,还是一个节表指针，用于新增节表
+LPVOID getSectionEnderNext(IN LPVOID pBuffer);
+
+//判断是否可以添加一个节表,若最后一个节表有80个字节全为0,则可以添加
+//pBuffer
+//返回值:1成功,0失败
+DWORD checkCanAddSection(IN LPVOID pBuffer);
+
+//新增一个节表,权限为
+//pBuffer
+//sizeOfNewSection,新增的节表占多少
+//pNewBuffer返回成功后newBuffer地址
+//characteristics：具体的权限，如0x60000020
+//返回值 1成功 0失败
+DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characteristics,OUT LPVOID* pNewImageBuffer);
+
+
+//将changeNumber改为baseNumber的整数倍
+DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber);
+
 
 #endif

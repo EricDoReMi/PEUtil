@@ -1,10 +1,10 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "Hello.exe"                //输入文件路径
-#define FILEPATH_OUT     "HelloOut.exe"             //输出文件路径
+#define FILEPATH_IN      "TestWin32OUT.exe"                //输入文件路径
+#define FILEPATH_OUT     "TestWin32OUTAdd.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
-#define MESSAGEBOXADDR    0x755AFDAE                    //MessageBox地址，每次开机都会变化
-#define SECTIONNUM        0x5;                          //要向哪个目标Section添加代码了
+#define MESSAGEBOXADDR    0x74D3FDAE                    //MessageBox地址，每次开机都会变化
+#define SECTIONNUM        0x7;                          //要向哪个目标Section添加代码了
 
 //要嵌入的代码
 BYTE shellCode[]={
@@ -152,30 +152,30 @@ void testAddCodeIntoSection(){
 
 	//FileBufferToImageBuffer
 	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
-
+	freePBuffer(pFileBuffer);
 	if(!copySize){
 		freePBuffer(pFileBuffer);
 		printf("addShellCodeIntoSection---CopyFileBufferToImageBuffer Failed!\n");	
 		return ;
 	}
 	
-	PIMAGE_SECTION_HEADER pSectionHeader=getSection(pFileBuffer,sectionNum);
+	PIMAGE_SECTION_HEADER pSectionHeader=getSection(pImageBuffer,sectionNum);
 	
 	if(!pSectionHeader){
-		freePBuffer(pFileBuffer);	
+			
 		freePBuffer(pImageBuffer);
 		printf("addShellCodeIntoSection Failed!---SectionNum:%d 不存在\n",sectionNum);	
 		return ;
 	}
 
 	if(!checkSectionHeaderCouldWriteCode(pSectionHeader,shellCodeLength)){
-		freePBuffer(pFileBuffer);	
+			
 		freePBuffer(pImageBuffer);
 		printf("addShellCodeIntoSection Failed!---Section:%d 没有足够的空间存放shellCode\n",sectionNum);
 		return;
 	}
 
-
+	
 	PBYTE pcodeBegin=NULL;
 	pcodeBegin=getCodeBeginFromImageBuffer(pImageBuffer,pSectionHeader);
 	
@@ -234,13 +234,13 @@ void testAddCodeIntoSection(){
 void testAddNewSection(){
 	char* pathName=FILEPATH_IN;
 	char* pathNameDes=FILEPATH_OUT;
-	PBYTE pshellCode=shellCode;
-	DWORD shellCodeLength=SHELLCODELENGTH;
-	WORD sectionNum=SECTIONNUM;
-	DWORD messageBoxAddress=MESSAGEBOXADDR;
+	DWORD sizeOfNewSection=2000;
+	DWORD characteristics=0x60000020;
+
 	
 	LPVOID pFileBuffer=NULL;
 	LPVOID pImageBuffer=NULL;
+	LPVOID pNewImageBuffer=NULL;
 	LPVOID pNewFileBuffer=NULL;
 
 	//FileToFileBuffer
@@ -252,29 +252,49 @@ void testAddNewSection(){
 
 	//FileBufferToImageBuffer
 	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
-
+	freePBuffer(pFileBuffer);
 	if(!copySize){
-		freePBuffer(pFileBuffer);
+		
 		printf("addShellCodeIntoSection---CopyFileBufferToImageBuffer Failed!\n");	
 		return ;
 	}
-	
-	copySize=topPENTHeader(pImageBuffer);
+
+
+	//上移NTHeader和SectionHeaders
+	copySize=topPENTAndSectionHeader(pImageBuffer);
 	printf("topPENTHeader---%d\n",copySize);
 
-	LPVOID pNewBuffer=NULL;
-	
-	
-	copySize=CopyImageBufferToNewBuffer(pImageBuffer,&pNewBuffer);
+	//检查是否有足够空间添加节表
+	DWORD checkCanAddSectionFlag=checkCanAddSection(pImageBuffer);
+
+	if(!checkCanAddSectionFlag){
+		freePBuffer(pImageBuffer);
+		printf("checkCanAddSection---没有足够的空间添加节表\n");
+
+	}
+
+	//新增一个节
+	DWORD checkAddNewSectionFlag=addNewSection(pImageBuffer,sizeOfNewSection,characteristics,&pNewImageBuffer);
 	
 	freePBuffer(pImageBuffer);
+
+	if(!checkAddNewSectionFlag){
+		printf("addNewSection Failed!\n");
+		return;
+	}
+	
+	
+
+	copySize=CopyImageBufferToNewBuffer(pNewImageBuffer,&pNewFileBuffer);
+	
+	freePBuffer(pNewImageBuffer);
 
 	if(!copySize){
 		printf("CopyImageBufferToNewBuffer Failed!\n");
 		return;
 	}
 
-	copySize=MemeryTOFile(pNewBuffer,copySize,pathNameDes);
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
 	freePBuffer(pNewFileBuffer);
 
 	if(!copySize){
@@ -291,8 +311,8 @@ int main(int argc, char* argv[]){
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
-	//testAddCodeIntoSection();
-	testAddNewSection();
+	testAddCodeIntoSection();
+	//testAddNewSection();
 	return 0;
 }
 

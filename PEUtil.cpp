@@ -623,10 +623,10 @@ DWORD changeSectionCharacteristics(LPVOID pBuffer,WORD sectionNum,DWORD characte
 
 }
 
-//在pBuffer中将PE的NT头提升到Dos头下
+//在pBuffer中将PE的NT头和Section表头提升到Dos头下
 //pBuffer
 //返回值:Dos头下的间隙的大小，0:Dos头下没有间隙
-DWORD topPENTHeader(IN LPVOID pBuffer){
+DWORD topPENTAndSectionHeader(IN LPVOID pBuffer){
 	DWORD copySize=0;
 	PIMAGE_DOS_HEADER dosHeader = getDosHeader(pBuffer);
 	PIMAGE_NT_HEADERS ntHeader = getNTHeader(pBuffer);
@@ -672,4 +672,131 @@ DWORD topPENTHeader(IN LPVOID pBuffer){
 	dosHeader->e_lfanew=(endDosPointNext-(DWORD)pBuffer);
 
 	return copySize;
+}
+
+//获得节表的最后一个字节的下一个字节的地址
+//pBuffer
+//返回值:LPVOID,还是一个节表指针，用于新增节表
+LPVOID getSectionEnderNext(IN LPVOID pBuffer){
+
+	WORD sectionNum=getSectionNum(pBuffer);
+	//获得第一个节表头
+	PIMAGE_SECTION_HEADER pSectionHeader1 = getSection(pBuffer,1);
+
+	LPVOID pSectionEnderNext=(LPVOID)(pSectionHeader1+sectionNum);
+
+	return pSectionEnderNext;
+
+
+
+}
+
+//判断是否可以添加一个节表,若最后一个节表有80个字节全为0,则可以添加
+//pBuffer
+//返回值:1成功,0失败
+DWORD checkCanAddSection(IN LPVOID pBuffer){
+
+
+	char* fillZeroStart=(char*)getSectionEnderNext(pBuffer);
+
+	int i=0;
+	int checkLen=2*sizeof(IMAGE_SECTION_HEADER);
+	for(i=0;i<checkLen;i++){
+		if(*(fillZeroStart+i))return 0;
+	}
+
+	return 1;
+
+}
+
+//新增一个节表,权限为
+//pBuffer
+//sizeOfNewSection,新增的节表占多少
+//pNewBuffer返回成功后newBuffer地址
+//characteristics：具体的权限，如0x60000020
+//返回值 1成功 0失败
+DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characteristics,OUT LPVOID* pNewImageBuffer){
+	//获得optionHeader中所需要的数据
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pImageBuffer);
+	DWORD sizeOfImage=pOptionHeader->SizeOfImage;
+	DWORD sectionAlignment=pOptionHeader->SectionAlignment;
+
+	//修改sizeOfNewSection
+	sizeOfNewSection=changeNumberByBase(sectionAlignment,sizeOfNewSection);
+
+	DWORD newBufferSize=sizeOfImage+sizeOfNewSection;
+
+	//申请内存用于存储新的pBuffer
+	LPVOID pNewImageBufferTmp=NULL;
+	pNewImageBufferTmp=malloc(newBufferSize);
+
+	if(!pNewImageBufferTmp)	
+	{	
+
+		printf("addNewSection Failed---malloc pNewImageBufferTmp失败!\n ");
+		
+		return 0;
+	}
+	
+	memset(pNewImageBufferTmp,0,newBufferSize);
+	
+	//将pBuffer的数据读入到pNewBufferTmp
+	memcpy(pNewImageBufferTmp,pImageBuffer,sizeOfImage);
+	
+
+
+	
+	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pNewImageBufferTmp);
+
+	//原来section的数量
+	WORD sectionNumBefore=fileHeader->NumberOfSections;
+	
+
+	//修改sizeOfImage
+	pOptionHeader=getOptionHeader(pNewImageBufferTmp);
+	pOptionHeader->SizeOfImage=newBufferSize;
+	
+
+	//获得新增节表头
+	PIMAGE_SECTION_HEADER pNewSectionHeader=(PIMAGE_SECTION_HEADER)getSectionEnderNext(pNewImageBufferTmp);
+	
+	//Copy最后一个节表
+	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pNewImageBufferTmp,sectionNumBefore);
+	*pNewSectionHeader=*(pLastSectionHeader);
+	
+	(fileHeader->NumberOfSections)++;
+
+	//修改新增节表名字
+	BYTE names[8]={'.','A','D','D',0};
+	BYTE* pName=pNewSectionHeader->Name;
+	pName=names;
+	
+	//修改新增节表属性
+	pNewSectionHeader->PointerToRawData=pLastSectionHeader->PointerToRawData+pLastSectionHeader->SizeOfRawData;
+	pNewSectionHeader->SizeOfRawData=sizeOfNewSection;
+	pNewSectionHeader->VirtualAddress=sizeOfImage;
+	pNewSectionHeader->Characteristics=characteristics;
+
+	*pNewImageBuffer=pNewImageBufferTmp;
+	
+
+	
+	return 1;
+}
+
+//将changeNumber改为baseNumber的整数倍
+//baseNum:基数
+//changeNumber:需要设置的数
+//返回值:改变后的值
+DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber){
+	if(baseNumber<changeNumber){
+		DWORD mul=changeNumber/baseNumber;
+
+		return baseNumber*(mul+1);
+	}else{
+		return baseNumber;
+	}
+
+
 }
