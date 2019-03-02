@@ -709,7 +709,7 @@ DWORD checkCanAddSection(IN LPVOID pBuffer){
 
 }
 
-//新增一个节表
+//新增一个节
 //pBuffer
 //sizeOfNewSection,新增的字节数
 //pNewBuffer返回成功后newBuffer地址
@@ -791,8 +791,9 @@ DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characte
 //pBuffer
 //addSize,增加的字节数
 //pNewBuffer返回成功后newBuffer地址
+//characteristics：具体的权限，如0x60000020
 //返回值 1成功 0失败
-DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* pNewImageBuffer){
+DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,DWORD characteristics,OUT LPVOID* pNewImageBuffer){
 	//获得optionHeader中所需要的数据
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
 	pOptionHeader=getOptionHeader(pImageBuffer);
@@ -803,12 +804,11 @@ DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* p
 	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pImageBuffer);
 	WORD sectionNum=fileHeader->NumberOfSections;
 
-	//获得最后一个节表
-	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pImageBuffer,sectionNum);
-	DWORD sizeOfRowDataLastSection=pLastSectionHeader->SizeOfRawData;
+	
 	
 	//修改addSize
 	DWORD sizeOfNewSection=changeNumberByBase(sectionAlignment,addSizeNew);
+
 
 	DWORD newBufferSize=sizeOfImage+sizeOfNewSection;
 
@@ -836,7 +836,8 @@ DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* p
 	pOptionHeader->SizeOfImage=newBufferSize;
 	
 	//获得pNewImageBufferTmp最后一个节表
-	pLastSectionHeader=getSection(pNewImageBufferTmp,sectionNum);
+	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pNewImageBufferTmp,sectionNum);
+	
 
 	//修改sizeOfImage
 	pOptionHeader=getOptionHeader(pNewImageBufferTmp);
@@ -850,6 +851,9 @@ DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* p
 	
 	//修改最后一个节表属性
 	pLastSectionHeader->SizeOfRawData+=sizeOfNewSection;
+	pLastSectionHeader->Characteristics=characteristics;
+	
+
 	pLastSectionHeader->Misc.VirtualSize=pLastSectionHeader->SizeOfRawData-sectionAlignment+1;
 	*pNewImageBuffer=pNewImageBufferTmp;
 	
@@ -857,6 +861,97 @@ DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* p
 	
 	return 1;
 }
+
+//合并所有节
+//pBuffer
+//characteristics 合并后只有一个节，要运行，可设置权限为0xE0000020，若还要增加其他节，可设置其他权限，但无法运行
+//pNewBuffer返回成功后newBuffer地址
+//返回值 1成功 0失败
+DWORD mergeAllSections(IN LPVOID pImageBuffer,DWORD characteristics,OUT LPVOID* pNewImageBuffer){
+	//获得optionHeader中所需要的数据
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pImageBuffer);
+	DWORD sizeOfImage=pOptionHeader->SizeOfImage;
+	DWORD sizeOfHeaders=pOptionHeader->SizeOfHeaders;
+	DWORD sectionAlignment=pOptionHeader->SectionAlignment;
+
+	//获得FileHeader中所需要的数据
+	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pImageBuffer);
+	WORD sectionNum=fileHeader->NumberOfSections;
+	
+	//获得最后一个节表
+	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pImageBuffer,sectionNum);
+
+	DWORD maxOfSize=0;
+	if((pLastSectionHeader->SizeOfRawData) > (pLastSectionHeader->Misc.VirtualSize)){
+		maxOfSize=pLastSectionHeader->SizeOfRawData;
+	}else{
+		maxOfSize=pLastSectionHeader->Misc.VirtualSize;
+	}
+	maxOfSize=changeNumberByBase(sectionAlignment,pLastSectionHeader->VirtualAddress+maxOfSize-sizeOfHeaders);
+	
+
+	//申请内存用于存储新的pBuffer
+	LPVOID pNewImageBufferTmp=NULL;
+	pNewImageBufferTmp=malloc(maxOfSize+sizeOfHeaders);
+
+	if(!pNewImageBufferTmp)	
+	{	
+
+		printf("extendTheLastSection---malloc pNewImageBufferTmp失败!\n ");
+		
+		return 0;
+	}
+	
+	memset(pNewImageBufferTmp,0,maxOfSize+sizeOfHeaders);
+	
+	//将pBuffer的数据读入到pNewBufferTmp
+	memcpy(pNewImageBufferTmp,pImageBuffer,sizeOfImage);
+
+	//获得第一个节表
+	PIMAGE_SECTION_HEADER pFirstSectionHeader=getSection(pNewImageBufferTmp,1);
+
+	
+
+	
+	//修改第一个节表名字
+	BYTE names[8]={'.','M','E','R','G','E',0};
+	BYTE* pName=pFirstSectionHeader->Name;
+	memcpy(pName,names,8);
+	
+
+	
+
+	//修改第一个节表属性
+	pFirstSectionHeader->SizeOfRawData=maxOfSize;
+	
+	pFirstSectionHeader->Characteristics=characteristics;
+
+
+	pFirstSectionHeader->Misc.VirtualSize=maxOfSize;
+
+
+	//将第一个节表后面0x28个字节置零
+	if(sectionNum>1){
+		memset(pFirstSectionHeader+1,0,sizeof(IMAGE_SECTION_HEADER));
+	
+	}
+	
+	//修改sizeOfImage大小
+	pOptionHeader=getOptionHeader(pNewImageBufferTmp);
+	pOptionHeader->SizeOfImage=maxOfSize+sizeOfHeaders;
+
+	//将section数量修改为1
+	fileHeader = getPEHeader(pNewImageBufferTmp);
+	fileHeader->NumberOfSections=1;
+
+	*pNewImageBuffer=pNewImageBufferTmp;
+	
+
+	
+	return 1;
+}
+
 
 
 

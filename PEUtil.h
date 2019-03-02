@@ -191,8 +191,16 @@ DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characte
 //pBuffer
 //addSize,增加的字节数
 //pNewBuffer返回成功后newBuffer地址
+//characteristics：具体的权限，如0x60000020
 //返回值 1成功 0失败
-DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,OUT LPVOID* pNewImageBuffer);
+DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,DWORD characteristics,OUT LPVOID* pNewImageBuffer);
+
+//合并所有节
+//pBuffer
+//characteristics 合并后只有一个节，要运行，可设置权限为0xE0000020，若还要增加其他节，可设置其他权限，但无法运行
+//pNewBuffer返回成功后newBuffer地址
+//返回值 1成功 0失败
+DWORD mergeAllSections(IN LPVOID pImageBuffer,DWORD characteristics,OUT LPVOID* pNewImageBuffer);
 
 //将changeNumber改为baseNumber的整数倍
 DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber);

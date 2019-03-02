@@ -1,10 +1,10 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "TestWin32Out.exe"              //输入文件路径
-#define FILEPATH_OUT     "TestWin32Out.exe"             //输出文件路径
+#define FILEPATH_IN      "TestWin32out2.exe"              //输入文件路径
+#define FILEPATH_OUT     "TestWin32out3.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
-#define MESSAGEBOXADDR    0x76DAFDAE                    //MessageBox地址，每次开机都会变化
-#define SECTIONNUM        0x7;                          //要向哪个目标Section添加代码了
+#define MESSAGEBOXADDR    0x7720FDAE                   //MessageBox地址，每次开机都会变化
+#define SECTIONNUM        0x1;                          //要向哪个目标Section添加代码了
 
 //要嵌入的代码
 BYTE shellCode[]={
@@ -198,6 +198,7 @@ void testAddCodeIntoSection(){
 	*(PDWORD)(pcodeBegin+0xE)=jmpAddress;
 
 	//修改Section权限为可读可写可执行
+	//一般设置这个权限0x60000020; 只有一个节的情况下设置这个权限0xE0000060;
 	DWORD changeSectionCharacteristicsResult=changeSectionCharacteristics(pImageBuffer,sectionNum,0x60000020);
 	if(!changeSectionCharacteristicsResult){
 		printf("changeSectionCharacteristics Failed\n");
@@ -310,7 +311,9 @@ void testExtendTheLastSection(){
 	char* pathName=FILEPATH_IN;
 	char* pathNameDes=FILEPATH_OUT;
 	DWORD addSizeNew=5000;
-
+	
+	//一般设置这个权限0x60000020; 只有一个节的情况下设置这个权限0xE0000060;
+	DWORD characteristics=0xE0000060;
 
 	
 	LPVOID pFileBuffer=NULL;
@@ -336,7 +339,7 @@ void testExtendTheLastSection(){
 
 
 	//扩大最后一个节了
-	DWORD checkExtendLastSection=extendTheLastSection(pImageBuffer,addSizeNew,&pNewImageBuffer);
+	DWORD checkExtendLastSection=extendTheLastSection(pImageBuffer,addSizeNew,characteristics,&pNewImageBuffer);
 	
 	freePBuffer(pImageBuffer);
 
@@ -368,6 +371,68 @@ void testExtendTheLastSection(){
 }
 
 
+//合并所有的Section
+void testMergeAllSections(){
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+
+	DWORD characteristics=0xE0000060;//0x60000060或0xE0000060
+
+	
+	LPVOID pFileBuffer=NULL;
+	LPVOID pImageBuffer=NULL;
+	LPVOID pNewImageBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	DWORD copySize=0;
+
+	//FileBufferToImageBuffer
+	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
+	freePBuffer(pFileBuffer);
+	if(!copySize){
+		
+		printf("addShellCodeIntoSection---CopyFileBufferToImageBuffer Failed!\n");	
+		return ;
+	}
+
+
+	//合并所有的节
+	DWORD checkMergeAllSections=mergeAllSections(pImageBuffer,characteristics,&pNewImageBuffer);
+	
+	freePBuffer(pImageBuffer);
+
+	if(!checkMergeAllSections){
+		printf("checkMergeAllSections Failed!\n");
+		return;
+	}
+	
+	
+
+	copySize=CopyImageBufferToNewBuffer(pNewImageBuffer,&pNewFileBuffer);
+	
+	freePBuffer(pNewImageBuffer);
+
+	if(!copySize){
+		printf("CopyImageBufferToNewBuffer Failed!\n");
+		return;
+	}
+
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+	return;
+}
+
 int main(int argc, char* argv[]){
 
 	//testPrinter();
@@ -376,7 +441,8 @@ int main(int argc, char* argv[]){
 	//testFileOffsetToRva();
 	//testAddCodeIntoSection();
 	//testAddNewSection();
-	testExtendTheLastSection();
+	//testExtendTheLastSection();
+	testMergeAllSections();
 	return 0;
 }
 
