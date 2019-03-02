@@ -81,6 +81,28 @@ VOID PrintSectionHeaders(LPVOID pFileBuffer){
 	}
 
 
+}
+
+//打印目录表
+VOID PrintDataDirectory(LPVOID pFileBuffer){
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pFileBuffer);
+	DWORD i=0;
+	PIMAGE_DATA_DIRECTORY pImageDataDirectory=pOptionHeader->DataDirectory;
+
+	//导出表、导入表、资源表、异常信息表、安全证书表、重定位表、调试信息表、版权所有表、全局指针表
+    //TLS表、加载配置表、绑定导入表、IAT表、延迟导入表、COM信息表 最后一个保留未使用。
+	char* pTableNames[16]={"导出表","导入表","资源表","异常信息表","安全证书表","重定位表","调试信息表","版权所有表","全局指针表","TLS表","加载配置表","绑定导入表","IAT表","延迟导入表","COM信息表","保留表"};
+
+	printf("===============PrintDataDirectory=============\n");
+	PIMAGE_DATA_DIRECTORY pDataDirectory=NULL;
+	for(i=0;i<16;i++){
+		pDataDirectory=pImageDataDirectory+i;
+		printf("===============%s=============\n",pTableNames[i]);
+		printf("地址:%X\n",pDataDirectory->VirtualAddress);
+		printf("表大小:%X\n",pDataDirectory->Size);
+
+	}
 }	
 
 

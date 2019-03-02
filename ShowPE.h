@@ -18,7 +18,8 @@ VOID PrintOptionHeaders(LPVOID pFileBuffer);
 //打印节表信息
 VOID PrintSectionHeaders(LPVOID pFileBuffer);
 
-
+//打印目录表
+VOID PrintDataDirectory(LPVOID pFileBuffer);
 
 
 #endif

@@ -41,8 +41,8 @@ void testPrinter(){
 		//打印节表信息
 		PrintSectionHeaders(pFileBuffer);
 
-			
-
+		//打印目录表
+	    PrintDataDirectory(pFileBuffer);
 
 
 
@@ -435,14 +435,14 @@ void testMergeAllSections(){
 
 int main(int argc, char* argv[]){
 
-	//testPrinter();
+	testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
 	//testAddCodeIntoSection();
 	//testAddNewSection();
 	//testExtendTheLastSection();
-	testMergeAllSections();
+	//testMergeAllSections();
 	return 0;
 }
 
