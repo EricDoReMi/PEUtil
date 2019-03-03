@@ -75,6 +75,28 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva);
 //**************************************************************************							
 DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet);
 
+
+//**************************************************************************							
+//RvaToFileBufferAddress:将内存偏移转换为FileBuffer中的地址了							
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwRva RVA的值							
+//返回值说明：							
+//返回转换后的FileAddress的值  如果失败返回0							
+//**************************************************************************							
+DWORD RvaToFileBufferAddress(IN LPVOID pFileBuffer,IN DWORD dwRva);
+
+//**************************************************************************							
+//FileBufferAddressToRva:将FileBuffer中的地址转换为内存偏移							
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwFileAddress fileBuffer中地址						
+//返回值说明：							
+//返回转换后的RVA的值  如果失败返回0							
+//**************************************************************************							
+DWORD FileBufferAddressToRva(IN LPVOID pFileBuffer,IN DWORD dwFileAddress);
+	
+
 //释放Buffer
 void freePBuffer(LPVOID pBuffer);
 

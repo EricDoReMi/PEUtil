@@ -105,7 +105,8 @@ void testRvaToFileOffset(){
 	}
 
 
-	DWORD fileOffset=RvaToFileOffset(pFileBuffer,0x2DF38);
+	DWORD fileOffset=RvaToFileOffset(pFileBuffer,0x2DF10);
+	
 
 	printf("%X\n",fileOffset);
 
@@ -125,10 +126,30 @@ void testFileOffsetToRva(){
 		
 	
 	DWORD RVA=FileOffsetToRva(pFileBuffer,0x1C310);
+	
 
 	printf("%X\n",RVA);
 
 	
+}
+
+//测试FileBuffer和RVA地址间的相互转换
+void testAddressChangeByFileBufferAndRva(){
+		//初始化
+	char* pathName=FILEPATH_IN;
+
+	LPVOID pFileBuffer=NULL;
+
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return;
+	}
+	
+	DWORD fileBufferAddress=RvaToFileBufferAddress(pFileBuffer,0x2DF10);
+	printf("fileBufferAddress:%X\n",fileBufferAddress);
+
+	DWORD RVA=FileBufferAddressToRva(pFileBuffer,fileBufferAddress);
+
+	printf("RVA:%X\n",RVA);
 }
 
 //按define中定义的变量将MessageBox函数插入到指定Section中，运行时弹出MessageBox，然后正常运行FILEPATH_IN原来的代码
@@ -466,15 +487,16 @@ void testExportDirectory()
 
 int main(int argc, char* argv[]){
 
-	testPrinter();
+	//testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
+	//testAddressChangeByFileBufferAndRva();
 	//testAddCodeIntoSection();
 	//testAddNewSection();
 	//testExtendTheLastSection();
 	//testMergeAllSections();
-	testExportDirectory();
+	//testExportDirectory();
 	return 0;
 }
 

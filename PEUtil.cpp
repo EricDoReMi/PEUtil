@@ -251,7 +251,8 @@ DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile){
 		printf("MemeryTOFile---open File failed!\n");
 		return 0;
 		
-}							
+}
+							
 //**************************************************************************							
 //RvaToFileOffset:将内存偏移转换为文件偏移							
 //参数说明：							
@@ -329,6 +330,93 @@ DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
 			indexSection=i+1;
 			//找到了所在节的位置
 			return virtualAddress+(dwFileOffSet-pointerToRawData);
+			
+		}
+		
+		pSectionHeader=pSectionHeader+1;
+	}
+
+	
+	return 0;
+}
+
+//**************************************************************************							
+//RvaToFileBufferAddress:将内存偏移转换为FileBuffer中的地址了							
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwRva RVA的值							
+//返回值说明：							
+//返回转换后的FileAddress的值  如果失败返回0							
+//**************************************************************************							
+DWORD RvaToFileBufferAddress(IN LPVOID pFileBuffer,IN DWORD dwRva){
+	if(!checkIsPEFile(pFileBuffer)){
+		printf("RvaToFileOffset Failed---pFileBuffer不是标准PE文件!\n");
+		return 0;
+	}
+
+	
+	WORD sectionNum=getSectionNum(pFileBuffer);
+	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
+
+
+	
+	DWORD i=0;
+	DWORD virtualAddress=0;
+	DWORD indexSection=0;
+	for(i=0;i<sectionNum;i++){
+		
+		virtualAddress=pSectionHeader->VirtualAddress;
+		DWORD misc=pSectionHeader->Misc.VirtualSize;
+		
+		if(dwRva>=virtualAddress && dwRva<=(virtualAddress+misc)){
+			indexSection=i+1;
+			//找到了所在节的位置
+			return (DWORD)pFileBuffer+dwRva-virtualAddress+(pSectionHeader->PointerToRawData);
+			
+		}
+		
+		pSectionHeader=pSectionHeader+1;
+	}
+
+	
+	return 0;
+}
+
+//**************************************************************************							
+//FileBufferAddressToRva:将FileBuffer中的地址转换为内存偏移							
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwFileAddress fileBuffer中地址						
+//返回值说明：							
+//返回转换后的RVA的值  如果失败返回0							
+//**************************************************************************							
+DWORD FileBufferAddressToRva(IN LPVOID pFileBuffer,IN DWORD dwFileAddress){
+	if(!checkIsPEFile(pFileBuffer)){
+		printf("RvaToFileOffset Failed---pFileBuffer不是标准PE文件!\n");
+
+		return 0;
+	}
+
+	
+	WORD sectionNum=getSectionNum(pFileBuffer);
+	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
+	
+	DWORD gapImageBase=dwFileAddress-(DWORD)pFileBuffer;
+
+	DWORD i=0;
+	DWORD virtualAddress=0;
+	DWORD indexSection=0;
+	for(i=0;i<sectionNum;i++){
+		
+		virtualAddress=pSectionHeader->VirtualAddress;
+		DWORD misc=pSectionHeader->Misc.VirtualSize;
+		DWORD pointerToRawData=pSectionHeader->PointerToRawData;
+		DWORD sizeOfRawData=pSectionHeader->SizeOfRawData;
+		
+		if(gapImageBase>=pointerToRawData && gapImageBase<=(pointerToRawData+sizeOfRawData)){
+			indexSection=i+1;
+			//找到了所在节的位置
+			return virtualAddress+(gapImageBase-pointerToRawData);
 			
 		}
 		

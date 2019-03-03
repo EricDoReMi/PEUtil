@@ -160,3 +160,55 @@ VOID PrintExportTable(LPVOID pFileBuffer){
 }	
 
 
+//打印重定位表===TODO===
+VOID PrintRelocationTable(LPVOID pFileBuffer){
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,6);
+	//获得导出表在FileBuffer中的Address位置
+	DWORD relocationFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到
+	PIMAGE_BASE_RELOCATION pRelocationTables=(PIMAGE_BASE_RELOCATION)relocationFileBufferAddress;
+
+
+
+	printf("=============导出表信息=================\n");
+	printf("Name:%s\n",(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->Name));
+	printf("Base:%d\n",pExportDirectory->Base);
+	printf("NumberOfFunctions:%d\n",pExportDirectory->NumberOfFunctions);
+	printf("NumberOfNames:%d\n",pExportDirectory->NumberOfNames);
+	printf("AddressOfFunctions:%X\n",pExportDirectory->AddressOfFunctions);
+	printf("AddressOfNames:%X\n",pExportDirectory->AddressOfNames);
+	printf("AddressOfNameOrdinals:%X\n",pExportDirectory->AddressOfNameOrdinals);
+	printf("******导出表函数******\n");
+	
+
+	DWORD i=0;
+	DWORD j=0;
+
+	PDWORD pFileAddressOfFunctions=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfFunctions));
+	PDWORD pFileAddressOfNames=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNames));
+	PWORD pFileAddressOfNameOrdinals=(PWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNameOrdinals));
+	
+	//打印函数信息
+	for(i=0;i<pExportDirectory->NumberOfFunctions;i++){
+		DWORD addressOfFunction=*(pFileAddressOfFunctions+i);
+		
+		if(addressOfFunction){
+
+			printf("AddressOfFunction:%X\t",addressOfFunction);
+			printf("Ordinal:%d\t",i+pExportDirectory->Base);
+			
+			for(j=0;j<pExportDirectory->NumberOfNames;j++){
+				if(*(pFileAddressOfNameOrdinals+j)==i){
+					printf("AddressOfName:%s\t",(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,*(pFileAddressOfNames+j)));
+				}
+			}
+			printf("\n");
+		}
+
+		
+	}
+
+}	
+
