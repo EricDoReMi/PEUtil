@@ -21,5 +21,8 @@ VOID PrintSectionHeaders(LPVOID pFileBuffer);
 //打印目录表
 VOID PrintDataDirectory(LPVOID pFileBuffer);
 
+//打印导出表
+VOID PrintExportTable(LPVOID pFileBuffer);
+
 
 #endif

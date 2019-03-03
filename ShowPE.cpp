@@ -83,11 +83,13 @@ VOID PrintSectionHeaders(LPVOID pFileBuffer){
 
 }
 
+
+
 //打印目录表
 VOID PrintDataDirectory(LPVOID pFileBuffer){
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
 	pOptionHeader=getOptionHeader(pFileBuffer);
-	DWORD i=0;
+	
 	PIMAGE_DATA_DIRECTORY pImageDataDirectory=pOptionHeader->DataDirectory;
 
 	//导出表、导入表、资源表、异常信息表、安全证书表、重定位表、调试信息表、版权所有表、全局指针表
@@ -96,6 +98,8 @@ VOID PrintDataDirectory(LPVOID pFileBuffer){
 
 	printf("===============PrintDataDirectory=============\n");
 	PIMAGE_DATA_DIRECTORY pDataDirectory=NULL;
+
+	DWORD i=0;
 	for(i=0;i<16;i++){
 		pDataDirectory=pImageDataDirectory+i;
 		printf("===============%s=============\n",pTableNames[i]);
@@ -103,6 +107,56 @@ VOID PrintDataDirectory(LPVOID pFileBuffer){
 		printf("表大小:%X\n",pDataDirectory->Size);
 
 	}
+}
+
+//打印导出表
+VOID PrintExportTable(LPVOID pFileBuffer){
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,1);
+	//获得导出表在FileBuffer中的Address位置
+	DWORD exportDirectoryFileAddress =(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到导出表
+	PIMAGE_EXPORT_DIRECTORY pExportDirectory=(PIMAGE_EXPORT_DIRECTORY)exportDirectoryFileAddress;
+
+	printf("=============导出表信息=================\n");
+	printf("Name:%s\n",(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->Name));
+	printf("Base:%d\n",pExportDirectory->Base);
+	printf("NumberOfFunctions:%d\n",pExportDirectory->NumberOfFunctions);
+	printf("NumberOfNames:%d\n",pExportDirectory->NumberOfNames);
+	printf("AddressOfFunctions:%X\n",pExportDirectory->AddressOfFunctions);
+	printf("AddressOfNames:%X\n",pExportDirectory->AddressOfNames);
+	printf("AddressOfNameOrdinals:%X\n",pExportDirectory->AddressOfNameOrdinals);
+	printf("******导出表函数******\n");
+	
+
+	DWORD i=0;
+	DWORD j=0;
+
+	PDWORD pFileAddressOfFunctions=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfFunctions));
+	PDWORD pFileAddressOfNames=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNames));
+	PWORD pFileAddressOfNameOrdinals=(PWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNameOrdinals));
+	
+	//打印函数信息
+	for(i=0;i<pExportDirectory->NumberOfFunctions;i++){
+		DWORD addressOfFunction=*(pFileAddressOfFunctions+i);
+		
+		if(addressOfFunction){
+
+			printf("AddressOfFunction:%X\t",addressOfFunction);
+			printf("Ordinal:%d\t",i+pExportDirectory->Base);
+			
+			for(j=0;j<pExportDirectory->NumberOfNames;j++){
+				if(*(pFileAddressOfNameOrdinals+j)==i){
+					printf("AddressOfName:%s\t",(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,*(pFileAddressOfNames+j)));
+				}
+			}
+			printf("\n");
+		}
+
+		
+	}
+
 }	
 
 

@@ -1,6 +1,6 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "TestWin32out2.exe"              //输入文件路径
+#define FILEPATH_IN      "D:\\VCWorkspace\\MyTest\\TestDefDll.dll"              //输入文件路径
 #define FILEPATH_OUT     "TestWin32out3.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
 #define MESSAGEBOXADDR    0x7720FDAE                   //MessageBox地址，每次开机都会变化
@@ -27,7 +27,7 @@ void testPrinter(){
 	}
 		
 		//打印DosHeader
-		PrintDosHeaders(pFileBuffer);
+		/*PrintDosHeaders(pFileBuffer);
 
 		//打印NTHeader
 		PrintNTHeaders(pFileBuffer);
@@ -42,9 +42,10 @@ void testPrinter(){
 		PrintSectionHeaders(pFileBuffer);
 
 		//打印目录表
-	    PrintDataDirectory(pFileBuffer);
+	    PrintDataDirectory(pFileBuffer);*/
 
-
+		//打印导出表
+		PrintExportTable(pFileBuffer);
 
 }
 
@@ -104,7 +105,7 @@ void testRvaToFileOffset(){
 	}
 
 
-	DWORD fileOffset=RvaToFileOffset(pFileBuffer,0x401480);
+	DWORD fileOffset=RvaToFileOffset(pFileBuffer,0x2DF38);
 
 	printf("%X\n",fileOffset);
 
@@ -123,7 +124,7 @@ void testFileOffsetToRva(){
 	}
 		
 	
-	DWORD RVA=FileOffsetToRva(pFileBuffer,0x21f92);
+	DWORD RVA=FileOffsetToRva(pFileBuffer,0x1C310);
 
 	printf("%X\n",RVA);
 

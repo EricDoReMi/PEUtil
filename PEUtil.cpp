@@ -270,8 +270,7 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 	WORD sectionNum=getSectionNum(pFileBuffer);
 	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
 	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
-	DWORD imageBase = POptionPEHeader->ImageBase;
-	DWORD tmpImageHigh=dwRva-imageBase;
+	
 	DWORD i=0;
 	DWORD virtualAddress=0;
 	DWORD indexSection=0;
@@ -280,10 +279,10 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 		virtualAddress=pSectionHeader->VirtualAddress;
 		DWORD misc=pSectionHeader->Misc.VirtualSize;
 		
-		if(tmpImageHigh>=virtualAddress && tmpImageHigh<=(virtualAddress+misc)){
+		if(dwRva>=virtualAddress && dwRva<=(virtualAddress+misc)){
 			indexSection=i+1;
 			//找到了所在节的位置
-			return tmpImageHigh-virtualAddress+(pSectionHeader->PointerToRawData);
+			return dwRva-virtualAddress+(pSectionHeader->PointerToRawData);
 			
 		}
 		
@@ -295,7 +294,7 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 }
 
 //**************************************************************************							
-//FileOffsetToRva:将内存偏移转换为文件偏移							
+//FileOffsetToRva:将文件偏移转换为内存偏移							
 //参数说明：							
 //pFileBuffer FileBuffer指针							
 //dwFileOffSet RVA的值							
@@ -329,7 +328,7 @@ DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
 		if(dwFileOffSet>=pointerToRawData && dwFileOffSet<=(pointerToRawData+sizeOfRawData)){
 			indexSection=i+1;
 			//找到了所在节的位置
-			return imageBase+virtualAddress+(dwFileOffSet-pointerToRawData);
+			return virtualAddress+(dwFileOffSet-pointerToRawData);
 			
 		}
 		
@@ -969,4 +968,19 @@ DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber){
 	}
 
 
+}
+
+
+//===================PIMAGE_DATA_DIRECTORY=======================
+//按index获取DataDirectoryTable信息
+//pFileBuffer
+//index 序号,如 1 导出表
+//返回 PIMAGE_DATA_DIRECTORY
+PIMAGE_DATA_DIRECTORY getDataDirectory(LPVOID pFileBuffer,DWORD index){
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pFileBuffer);
+	PIMAGE_DATA_DIRECTORY pImageDataDirectory=pOptionHeader->DataDirectory;
+
+	return  pImageDataDirectory+index-1;
+	
 }

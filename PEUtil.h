@@ -66,7 +66,7 @@ DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile);
 DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva);
 
 //**************************************************************************							
-//FileOffsetToRva:将内存偏移转换为文件偏移							
+//FileOffsetToRva:将文件偏移转换为内存偏移							
 //参数说明：							
 //pFileBuffer FileBuffer指针							
 //dwFileOffSet RVA的值							
@@ -204,6 +204,14 @@ DWORD mergeAllSections(IN LPVOID pImageBuffer,DWORD characteristics,OUT LPVOID* 
 
 //将changeNumber改为baseNumber的整数倍
 DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber);
+
+
+//===================PIMAGE_DATA_DIRECTORY=======================
+//按index获取DataDirectoryTable信息
+//pFileBuffer
+//index 序号,如 1 导出表
+//返回 PIMAGE_DATA_DIRECTORY
+PIMAGE_DATA_DIRECTORY getDataDirectory(LPVOID pFileBuffer,DWORD index);
 
 
 #endif
