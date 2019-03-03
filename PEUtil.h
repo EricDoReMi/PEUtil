@@ -214,4 +214,17 @@ DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber);
 PIMAGE_DATA_DIRECTORY getDataDirectory(LPVOID pFileBuffer,DWORD index);
 
 
+//********************导出表********************************
+//通过导出表函数名获得函数地址
+//pFileBuffer
+//pFunName 函数名字符串指针
+//返回值:成功 该函数ImageBase+RVA
+PVOID GetFunctionAddressByName(LPVOID pFileBuffer,char* pFunName);
+
+//通过导出表函数序号获得函数地址,序号来自于.def文件中的定义
+//pFileBuffer
+//index 序号
+//返回值:成功 该函数ImageBase+RVA
+PVOID GetFunctionAddressByOrdinals(LPVOID pFileBuffer,DWORD index);
+
 #endif

@@ -434,6 +434,36 @@ void testMergeAllSections(){
 	return;
 }
 
+void testExportDirectory()
+{
+	char* pathName=FILEPATH_IN;
+
+	
+	LPVOID pFileBuffer=NULL;
+
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	int a=8;
+	int b=9;
+	char* funName="Plus";
+
+	int (*lpPlus)(int,int);
+	int (*lpSub)(int,int);
+
+
+	lpPlus=(int(*)(int,int)) GetFunctionAddressByName(pFileBuffer,funName);
+	
+	lpSub=(int(*)(int,int)) GetFunctionAddressByOrdinals(pFileBuffer,15);
+	
+	printf("PlusResultAddr:%X\n",lpPlus);
+	printf("SubsResultAddr:%X\n",lpSub);
+
+}
+
 int main(int argc, char* argv[]){
 
 	testPrinter();
@@ -444,6 +474,7 @@ int main(int argc, char* argv[]){
 	//testAddNewSection();
 	//testExtendTheLastSection();
 	//testMergeAllSections();
+	testExportDirectory();
 	return 0;
 }
 

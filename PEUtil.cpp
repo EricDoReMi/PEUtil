@@ -655,7 +655,7 @@ DWORD topPENTAndSectionHeader(IN LPVOID pBuffer){
 	*((PIMAGE_NT_HEADERS)endDosPointNext)=*ntHeader;
 	
 	PIMAGE_SECTION_HEADER newPSectionHeader1=(PIMAGE_SECTION_HEADER)((PIMAGE_NT_HEADERS)endDosPointNext+1);
-	int i=0;
+	DWORD i=0;
 
 	for(i=0;i<sectionNum;i++){
 		*(newPSectionHeader1+i)=*(pSectionHeader1+i);
@@ -972,9 +972,11 @@ DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber){
 
 
 //===================PIMAGE_DATA_DIRECTORY=======================
+
+
 //按index获取DataDirectoryTable信息
 //pFileBuffer
-//index 序号,如 1 导出表
+//index 序号,序号从1开始,如 1 导出表
 //返回 PIMAGE_DATA_DIRECTORY
 PIMAGE_DATA_DIRECTORY getDataDirectory(LPVOID pFileBuffer,DWORD index){
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
@@ -983,4 +985,82 @@ PIMAGE_DATA_DIRECTORY getDataDirectory(LPVOID pFileBuffer,DWORD index){
 
 	return  pImageDataDirectory+index-1;
 	
+}
+
+//********************导出表********************************
+//通过导出表函数名获得函数地址
+//pFileBuffer
+//pFunName 函数名字符串指针
+//返回值:成功 该函数ImageBase+RVA
+PVOID GetFunctionAddressByName(LPVOID pFileBuffer,char* pFunName)
+{
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pFileBuffer);
+	DWORD imageBase = pOptionHeader->ImageBase;
+	
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,1);
+	//获得导出表在FileBuffer中的Address位置
+	DWORD exportDirectoryFileAddress =(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到导出表
+	PIMAGE_EXPORT_DIRECTORY pExportDirectory=(PIMAGE_EXPORT_DIRECTORY)exportDirectoryFileAddress;
+	
+	DWORD i=0;
+	DWORD j=0;
+
+	PDWORD pFileAddressOfFunctions=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfFunctions));
+	PDWORD pFileAddressOfNames=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNames));
+	PWORD pFileAddressOfNameOrdinals=(PWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNameOrdinals));
+	
+	//打印函数信息
+	for(i=0;i<pExportDirectory->NumberOfNames;i++)
+	{
+		char* addressOfName=(char*)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,*(pFileAddressOfNames+i)));
+		
+		//找到函数名
+		if(!strcmp(addressOfName,pFunName))
+		{
+			return (PVOID)(imageBase+*(pFileAddressOfFunctions+(DWORD)(*(pFileAddressOfNameOrdinals+i))));
+			
+		}
+	}
+
+	printf("GetFunctionAddrByName failed---没有对应函数:%s\n",pFunName);
+	return NULL;
+}
+
+//通过导出表函数序号获得函数地址,序号来自于.def文件中的定义
+//pFileBuffer
+//index 序号
+//返回值:成功 该函数ImageBase+RVA
+PVOID GetFunctionAddressByOrdinals(LPVOID pFileBuffer,DWORD index)
+{
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pFileBuffer);
+	DWORD imageBase = pOptionHeader->ImageBase;
+	
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,1);
+	//获得导出表在FileBuffer中的Address位置
+	DWORD exportDirectoryFileAddress =(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到导出表
+	PIMAGE_EXPORT_DIRECTORY pExportDirectory=(PIMAGE_EXPORT_DIRECTORY)exportDirectoryFileAddress;
+	
+
+	PDWORD pFileAddressOfFunctions=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfFunctions));
+
+
+	index=index-(pExportDirectory->Base);
+
+	if(index<0 || index>pExportDirectory->NumberOfFunctions)
+	{
+		printf("GetFunctionAddrByOrdinals failed---没有对应编号:%d\n",index);
+		return NULL;
+	}
+
+	return (PVOID)(imageBase+*(pFileAddressOfFunctions+index));
+		
+
 }
