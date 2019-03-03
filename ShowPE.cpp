@@ -160,7 +160,7 @@ VOID PrintExportTable(LPVOID pFileBuffer){
 }	
 
 
-//打印重定位表===TODO===
+//打印重定位表
 VOID PrintRelocationTable(LPVOID pFileBuffer){
 
 	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,6);
@@ -170,6 +170,36 @@ VOID PrintRelocationTable(LPVOID pFileBuffer){
 	//找到
 	PIMAGE_BASE_RELOCATION pRelocationTables=(PIMAGE_BASE_RELOCATION)relocationFileBufferAddress;
 
+	DWORD i=0;
+
+	printf("=============重定位表信息=================\n");
+	//pRelocationTables->SizeOfBlock || pRelocationTables->VirtualAddress 全为0时，则遍历结束
+	while(pRelocationTables->SizeOfBlock || pRelocationTables->VirtualAddress){
+		i++;
+		DWORD sizeOfBlock=pRelocationTables->SizeOfBlock;
+		DWORD virtualAddress=pRelocationTables->VirtualAddress;
+		
+		
+		//打印每个重定位表的具体信息
+		printf("***表:%d\tsizeOfBlock:%d\tvirtualAddress:%d\n",i,sizeOfBlock,virtualAddress);
+		//计算BLOCK的数量
+		DWORD numBlock=0;
+		numBlock=(sizeOfBlock-8)/2;
+		
+		DWORD j=0;
+		PWORD pStartBlock=(char*)pRelocationTables+8;
+		for(j=0;j<numBlock;j++){
+			//硬编码地方的地址
+			DWORD rvaChange=(*pStartBlock)&0x1FFFFFF;
+			DWORD isChange=(*pStartBlock)&0x
+		}
+		
+
+		//下一个重定位表地址
+		pRelocationTables=(PIMAGE_BASE_RELOCATION)((char*)pRelocationTables+sizeOfBlock);
+
+
+	}
 
 
 	printf("=============导出表信息=================\n");
