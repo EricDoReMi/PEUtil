@@ -66,6 +66,16 @@ DWORD MemeryTOFile(IN LPVOID pMemBuffer,IN size_t size,OUT LPSTR lpszFile);
 DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva);
 
 //**************************************************************************							
+//RvaToSectionIndex:通过内存偏移寻找sectionIndex						
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwRva RVA的值							
+//返回值说明：							
+//返回找到的SectionNum号 如果失败返回0							
+//**************************************************************************							
+DWORD RvaToSectionIndex(IN LPVOID pFileBuffer,IN DWORD dwRva);
+
+//**************************************************************************							
 //FileOffsetToRva:将文件偏移转换为内存偏移							
 //参数说明：							
 //pFileBuffer FileBuffer指针							

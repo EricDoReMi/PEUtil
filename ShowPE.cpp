@@ -161,7 +161,8 @@ VOID PrintExportTable(LPVOID pFileBuffer){
 
 
 //打印重定位表
-VOID PrintRelocationTable(LPVOID pFileBuffer){
+VOID PrintRelocationTable(LPVOID pFileBuffer)
+{
 
 	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,6);
 	//获得导出表在FileBuffer中的Address位置
@@ -174,24 +175,38 @@ VOID PrintRelocationTable(LPVOID pFileBuffer){
 
 	printf("=============重定位表信息=================\n");
 	//pRelocationTables->SizeOfBlock || pRelocationTables->VirtualAddress 全为0时，则遍历结束
-	while(pRelocationTables->SizeOfBlock || pRelocationTables->VirtualAddress){
+	while(pRelocationTables->VirtualAddress)
+	{
 		i++;
 		DWORD sizeOfBlock=pRelocationTables->SizeOfBlock;
 		DWORD virtualAddress=pRelocationTables->VirtualAddress;
-		
+		DWORD sectionIndex=RvaToSectionIndex(pFileBuffer,virtualAddress);
 		
 		//打印每个重定位表的具体信息
-		printf("***表:%d\tsizeOfBlock:%d\tvirtualAddress:%d\n",i,sizeOfBlock,virtualAddress);
+		printf("***表:%d\tsizeOfBlock:%d\tvirtualAddress:%X\tsectionIndex:%d\n",i,sizeOfBlock,virtualAddress,sectionIndex);
 		//计算BLOCK的数量
 		DWORD numBlock=0;
 		numBlock=(sizeOfBlock-8)/2;
 		
 		DWORD j=0;
-		PWORD pStartBlock=(char*)pRelocationTables+8;
-		for(j=0;j<numBlock;j++){
+		PWORD pStartBlock=(PWORD)pRelocationTables+4;
+		for(j=0;j<numBlock;j++)
+		{
 			//硬编码地方的地址
-			DWORD rvaChange=(*pStartBlock)&0x1FFFFFF;
-			DWORD isChange=(*pStartBlock)&0x
+			DWORD rvaChange=(DWORD)((*(PWORD)pStartBlock)&0x0FFF)+virtualAddress;
+			DWORD isChange=(*(PWORD)pStartBlock)&0xF000;
+			DWORD fileOffSet=RvaToFileOffset(pFileBuffer,rvaChange);
+			char* isChangeTxt=NULL;
+			isChangeTxt="否";
+			if((isChange^0x3000)==0){
+				isChangeTxt="是";
+			}
+			
+
+			printf("%d\tChange:%s\trva:%X\tfileOffSet:%X\n",j+1,isChangeTxt,rvaChange,fileOffSet);
+	
+			pStartBlock++;
+
 		}
 		
 
@@ -202,43 +217,7 @@ VOID PrintRelocationTable(LPVOID pFileBuffer){
 	}
 
 
-	printf("=============导出表信息=================\n");
-	printf("Name:%s\n",(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->Name));
-	printf("Base:%d\n",pExportDirectory->Base);
-	printf("NumberOfFunctions:%d\n",pExportDirectory->NumberOfFunctions);
-	printf("NumberOfNames:%d\n",pExportDirectory->NumberOfNames);
-	printf("AddressOfFunctions:%X\n",pExportDirectory->AddressOfFunctions);
-	printf("AddressOfNames:%X\n",pExportDirectory->AddressOfNames);
-	printf("AddressOfNameOrdinals:%X\n",pExportDirectory->AddressOfNameOrdinals);
-	printf("******导出表函数******\n");
-	
 
-	DWORD i=0;
-	DWORD j=0;
-
-	PDWORD pFileAddressOfFunctions=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfFunctions));
-	PDWORD pFileAddressOfNames=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNames));
-	PWORD pFileAddressOfNameOrdinals=(PWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNameOrdinals));
-	
-	//打印函数信息
-	for(i=0;i<pExportDirectory->NumberOfFunctions;i++){
-		DWORD addressOfFunction=*(pFileAddressOfFunctions+i);
-		
-		if(addressOfFunction){
-
-			printf("AddressOfFunction:%X\t",addressOfFunction);
-			printf("Ordinal:%d\t",i+pExportDirectory->Base);
-			
-			for(j=0;j<pExportDirectory->NumberOfNames;j++){
-				if(*(pFileAddressOfNameOrdinals+j)==i){
-					printf("AddressOfName:%s\t",(DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,*(pFileAddressOfNames+j)));
-				}
-			}
-			printf("\n");
-		}
-
-		
-	}
 
 }	
 

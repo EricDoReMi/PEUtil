@@ -280,10 +280,51 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 		virtualAddress=pSectionHeader->VirtualAddress;
 		DWORD misc=pSectionHeader->Misc.VirtualSize;
 		
-		if(dwRva>=virtualAddress && dwRva<=(virtualAddress+misc)){
+		if(dwRva>=virtualAddress && dwRva<(virtualAddress+misc)){
 			indexSection=i+1;
 			//找到了所在节的位置
 			return dwRva-virtualAddress+(pSectionHeader->PointerToRawData);
+			
+		}
+		
+		pSectionHeader=pSectionHeader+1;
+	}
+
+	
+	return 0;
+}
+
+//**************************************************************************							
+//RvaToSectionIndex:通过内存偏移寻找sectionIndex							
+//参数说明：							
+//pFileBuffer FileBuffer指针							
+//dwRva RVA的值							
+//返回值说明：							
+//返回找到的SectionNum号 如果失败返回0							
+//**************************************************************************							
+DWORD RvaToSectionIndex(IN LPVOID pFileBuffer,IN DWORD dwRva){
+	if(!checkIsPEFile(pFileBuffer)){
+		printf("RvaToFileOffset Failed---pFileBuffer不是标准PE文件!\n");
+		return 0;
+	}
+
+	
+	WORD sectionNum=getSectionNum(pFileBuffer);
+	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
+	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
+	
+	DWORD i=0;
+	DWORD virtualAddress=0;
+	DWORD indexSection=0;
+	for(i=0;i<sectionNum;i++){
+		
+		virtualAddress=pSectionHeader->VirtualAddress;
+		DWORD misc=pSectionHeader->Misc.VirtualSize;
+		
+		if(dwRva>=virtualAddress && dwRva<(virtualAddress+misc)){
+			indexSection=i+1;
+			//找到了所在节的位置
+			return indexSection;
 			
 		}
 		
@@ -326,7 +367,7 @@ DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
 		DWORD pointerToRawData=pSectionHeader->PointerToRawData;
 		DWORD sizeOfRawData=pSectionHeader->SizeOfRawData;
 		
-		if(dwFileOffSet>=pointerToRawData && dwFileOffSet<=(pointerToRawData+sizeOfRawData)){
+		if(dwFileOffSet>=pointerToRawData && dwFileOffSet<(pointerToRawData+sizeOfRawData)){
 			indexSection=i+1;
 			//找到了所在节的位置
 			return virtualAddress+(dwFileOffSet-pointerToRawData);
@@ -368,10 +409,10 @@ DWORD RvaToFileBufferAddress(IN LPVOID pFileBuffer,IN DWORD dwRva){
 		virtualAddress=pSectionHeader->VirtualAddress;
 		DWORD misc=pSectionHeader->Misc.VirtualSize;
 		
-		if(dwRva>=virtualAddress && dwRva<=(virtualAddress+misc)){
+		if(dwRva>=virtualAddress && dwRva<(virtualAddress+misc)){
 			indexSection=i+1;
 			//找到了所在节的位置
-			return (DWORD)pFileBuffer+dwRva-virtualAddress+(pSectionHeader->PointerToRawData);
+			return ((DWORD)pFileBuffer+(dwRva-virtualAddress+(pSectionHeader->PointerToRawData)));
 			
 		}
 		

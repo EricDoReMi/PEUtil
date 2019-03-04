@@ -45,7 +45,10 @@ void testPrinter(){
 	    PrintDataDirectory(pFileBuffer);*/
 
 		//打印导出表
-		PrintExportTable(pFileBuffer);
+		//PrintExportTable(pFileBuffer);
+
+		//打印重定向表
+		PrintRelocationTable(pFileBuffer);
 
 }
 
@@ -105,7 +108,7 @@ void testRvaToFileOffset(){
 	}
 
 
-	DWORD fileOffset=RvaToFileOffset(pFileBuffer,0x2DF10);
+	DWORD fileOffset=RvaToFileOffset(pFileBuffer,0x32000);
 	
 
 	printf("%X\n",fileOffset);
@@ -125,7 +128,7 @@ void testFileOffsetToRva(){
 	}
 		
 	
-	DWORD RVA=FileOffsetToRva(pFileBuffer,0x1C310);
+	DWORD RVA=FileOffsetToRva(pFileBuffer,0x32000);
 	
 
 	printf("%X\n",RVA);
@@ -487,7 +490,7 @@ void testExportDirectory()
 
 int main(int argc, char* argv[]){
 
-	//testPrinter();
+	testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
