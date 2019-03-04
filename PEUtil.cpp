@@ -80,7 +80,7 @@ DWORD ReadPEFile(IN LPSTR lpszFile,OUT LPVOID* pFileBuffer)
 	pFile=NULL;
 	*pFileBuffer=pFileBufferTmp;
 	printf("ReadPEFile successed,%s!\n",lpszFile);
-    return n;		
+    return fileSize;		
 	
 }
 
@@ -838,7 +838,7 @@ DWORD checkCanAddSection(IN LPVOID pBuffer){
 }
 
 //新增一个节
-//pBuffer
+//pImageBuffer
 //sizeOfNewSection,新增的字节数
 //pNewBuffer返回成功后newBuffer地址
 //characteristics：具体的权限，如0x60000020
@@ -912,6 +912,115 @@ DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characte
 
 	
 	return 1;
+}
+
+
+//获得FileBuffer的大小
+DWORD getFileBufferSize(IN LPVOID pFileBuffer){
+	DWORD sizeOfFileBuffer=0;
+	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pFileBuffer);
+	WORD sectionNumBefore=fileHeader->NumberOfSections;
+	
+	PIMAGE_SECTION_HEADER pLastSectionHeader=(PIMAGE_SECTION_HEADER)getSection(pFileBuffer,sectionNumBefore);
+
+
+	DWORD pointerToRawDataLastSection=pLastSectionHeader->PointerToRawData;
+	DWORD sizeOfRawDataLastSection=pLastSectionHeader->SizeOfRawData;
+	sizeOfFileBuffer=pointerToRawDataLastSection+sizeOfRawDataLastSection;
+
+	return sizeOfFileBuffer;
+
+}
+
+//直接在FileBuffer中新增一个节
+//pFileBuffer
+//sizeOfNewSection,新增的字节数
+//pNewFileBuffer返回成功后newFileBuffer地址
+//characteristics：具体的权限，如0x60000020
+//返回值 返回新增节首地址的RVA 0失败
+DWORD addNewSectionByFileBuffer(IN LPVOID pFileBuffer,DWORD sizeOfNewSection,DWORD characteristics,OUT LPVOID* pNewFileBuffer){
+	//获得optionHeader中所需要的数据
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pFileBuffer);
+
+	DWORD sizeOfHeaders=pOptionHeader->SizeOfHeaders;
+	DWORD sizeOfImage=pOptionHeader->SizeOfImage;
+	DWORD sectionAlignment=pOptionHeader->SectionAlignment;
+	DWORD fileAlignment=pOptionHeader->FileAlignment;
+
+	
+	DWORD sizeOfFileBuffer=getFileBufferSize(pFileBuffer);
+
+	//新增节加在FileBuffer中的新增大小
+	DWORD newSizeOfFileSection=changeNumberByBase(fileAlignment,sizeOfNewSection);
+
+	//新增节加在ImageBuffer中的新增大小
+	DWORD newSizeOfSectionImage=changeNumberByBase(sectionAlignment,sizeOfNewSection);
+
+	//新的sizeOfImage
+	DWORD newSizeOfImage=sizeOfImage+newSizeOfSectionImage;
+	
+
+
+	//新的FileBuffer的大小
+	DWORD newSizeOfBuffer=sizeOfFileBuffer+newSizeOfFileSection;
+
+	
+
+	//申请内存用于存储新的pBuffer
+	LPVOID pNewFileBufferTmp=NULL;
+	pNewFileBufferTmp=malloc(newSizeOfBuffer);
+
+	if(!pNewFileBufferTmp)	
+	{	
+
+		printf("addNewSectionByFileBuffer Failed---malloc pNewFileBufferTmp失败!\n ");
+		
+		return 0;
+	}
+	
+	memset(pNewFileBufferTmp,0,newSizeOfBuffer);
+	
+	//将pBuffer的数据读入到pNewBufferTmp
+	memcpy(pNewFileBufferTmp,pFileBuffer,sizeOfFileBuffer);
+	
+	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pNewFileBufferTmp);
+	
+	WORD sectionNumBefore=fileHeader->NumberOfSections;
+
+	//修改sizeOfImage
+	pOptionHeader=getOptionHeader(pNewFileBufferTmp);
+	pOptionHeader->SizeOfImage=newSizeOfImage;
+	
+	
+
+	//获得新增节表头
+	PIMAGE_SECTION_HEADER pNewSectionHeader=(PIMAGE_SECTION_HEADER)getSectionEnderNext(pNewFileBufferTmp);
+	
+	//Copy最后一个节表
+	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pNewFileBufferTmp,sectionNumBefore);
+	*pNewSectionHeader=*(pLastSectionHeader);
+	
+	
+	(fileHeader->NumberOfSections)++;
+
+	//修改新增节表名字
+	BYTE names[8]={'.','A','D','D',0};
+	BYTE* pName=pNewSectionHeader->Name;
+	memcpy(pName,names,8);
+	
+	//修改新增节表属性
+	pNewSectionHeader->PointerToRawData=pLastSectionHeader->PointerToRawData+pLastSectionHeader->SizeOfRawData;
+	pNewSectionHeader->SizeOfRawData=newSizeOfFileSection;
+	pNewSectionHeader->VirtualAddress=sizeOfImage;
+	pNewSectionHeader->Characteristics=characteristics;
+	pNewSectionHeader->Misc.VirtualSize=newSizeOfSectionImage-sectionAlignment+1;
+
+	*pNewFileBuffer=pNewFileBufferTmp;
+	
+
+	
+	return pNewSectionHeader->PointerToRawData;
 }
 
 
@@ -1191,5 +1300,5 @@ PVOID GetFunctionAddressByOrdinals(LPVOID pFileBuffer,DWORD index)
 
 	return (PVOID)(imageBase+*(pFileAddressOfFunctions+index));
 		
-
 }
+

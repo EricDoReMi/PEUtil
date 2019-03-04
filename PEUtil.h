@@ -218,6 +218,18 @@ DWORD checkCanAddSection(IN LPVOID pBuffer);
 //返回值 1成功 0失败
 DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characteristics,OUT LPVOID* pNewImageBuffer);
 
+//获得FileBuffer的大小
+DWORD getFileBufferSize(IN LPVOID pFileBuffer);
+
+
+//直接在FileBuffer中新增一个节
+//pFileBuffer
+//sizeOfNewSection,新增的字节数
+//pNewFileBuffer返回成功后newFileBuffer地址
+//characteristics：具体的权限，如0x60000020
+//返回值 返回新增节首地址的RVA 0失败
+DWORD addNewSectionByFileBuffer(IN LPVOID pFileBuffer,DWORD sizeOfNewSection,DWORD characteristics,OUT LPVOID* pNewFileBuffer);
+
 
 //扩展最后一个节表
 //pBuffer

@@ -1,7 +1,7 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "D:\\VCWorkspace\\MyTest\\TestDefDll.dll"              //输入文件路径
-#define FILEPATH_OUT     "TestWin32out3.exe"             //输出文件路径
+#define FILEPATH_IN      "D:\\VCWorkspace\\TestDll\\Debug\\TestDll.dll"                         // "D:\\VCWorkspace\\MyTest\\TestDefDll.dll"              //输入文件路径
+#define FILEPATH_OUT     "TestWin32out.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
 #define MESSAGEBOXADDR    0x7720FDAE                   //MessageBox地址，每次开机都会变化
 #define SECTIONNUM        0x1;                          //要向哪个目标Section添加代码了
@@ -278,6 +278,7 @@ void testAddNewSection(){
 
 	//FileBufferToImageBuffer
 	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
+	
 	freePBuffer(pFileBuffer);
 	if(!copySize){
 		
@@ -331,6 +332,69 @@ void testAddNewSection(){
 	return;
 }
 
+//直接在FileBuffer中新增一个节
+void testAddNewSectionByFileBuffer(){
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+	DWORD sizeOfNewSection=5000;
+	DWORD characteristics=0x60000020;
+
+	
+	LPVOID pFileBuffer=NULL;
+
+	LPVOID pNewFileBuffer=NULL;
+	
+	DWORD copySize=0;
+	copySize=ReadPEFile(pathName,&pFileBuffer);
+
+	//FileToFileBuffer
+	if(!copySize){
+		return ;
+	}
+
+
+
+	//上移NTHeader和SectionHeaders
+	copySize=topPENTAndSectionHeader(pFileBuffer);
+	printf("topPENTHeader---%d\n",copySize);
+
+	//检查是否有足够空间添加节表
+	DWORD checkCanAddSectionFlag=checkCanAddSection(pFileBuffer);
+
+	if(!checkCanAddSectionFlag){
+		freePBuffer(pFileBuffer);
+		printf("checkCanAddSection---没有足够的空间添加节表\n");
+		return;
+
+	}
+
+	//新增一个节
+	DWORD fileRVA=addNewSectionByFileBuffer(pFileBuffer,sizeOfNewSection,characteristics,&pNewFileBuffer);
+	
+	freePBuffer(pFileBuffer);
+
+	if(!copySize){
+		printf("addNewSection Failed!\n");
+		return;
+	}
+	
+	
+	copySize=getFileBufferSize(pNewFileBuffer);
+
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+	printf("新增节RVA:%X\n",fileRVA);
+
+	return;
+
+}
+
 //扩大最后一个Section
 void testExtendTheLastSection(){
 	char* pathName=FILEPATH_IN;
@@ -346,12 +410,13 @@ void testExtendTheLastSection(){
 	LPVOID pNewImageBuffer=NULL;
 	LPVOID pNewFileBuffer=NULL;
 
+	DWORD copySize=0;
 	//FileToFileBuffer
 	if(!ReadPEFile(pathName,&pFileBuffer)){
 		return ;
 	}
 
-	DWORD copySize=0;
+
 
 	//FileBufferToImageBuffer
 	copySize= CopyFileBufferToImageBuffer(pFileBuffer,&pImageBuffer);
@@ -490,13 +555,14 @@ void testExportDirectory()
 
 int main(int argc, char* argv[]){
 
-	testPrinter();
+	//testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
 	//testAddressChangeByFileBufferAndRva();
 	//testAddCodeIntoSection();
 	//testAddNewSection();
+	testAddNewSectionByFileBuffer();
 	//testExtendTheLastSection();
 	//testMergeAllSections();
 	//testExportDirectory();
