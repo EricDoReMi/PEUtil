@@ -1226,11 +1226,11 @@ PIMAGE_DATA_DIRECTORY getDataDirectory(LPVOID pFileBuffer,DWORD index){
 }
 
 //********************导出表********************************
-//通过导出表函数名获得函数地址
+//通过导出表函数名获得函数地址RVA
 //pFileBuffer
 //pFunName 函数名字符串指针
-//返回值:成功 该函数ImageBase+RVA
-PVOID GetFunctionAddressByName(LPVOID pFileBuffer,char* pFunName)
+//返回值:成功 该函数RVA
+DWORD GetFunctionRVAByName(LPVOID pFileBuffer,char* pFunName)
 {
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
 	pOptionHeader=getOptionHeader(pFileBuffer);
@@ -1259,7 +1259,7 @@ PVOID GetFunctionAddressByName(LPVOID pFileBuffer,char* pFunName)
 		//找到函数名
 		if(!strcmp(addressOfName,pFunName))
 		{
-			return (PVOID)(imageBase+*(pFileAddressOfFunctions+(DWORD)(*(pFileAddressOfNameOrdinals+i))));
+			return (DWORD)(*(pFileAddressOfFunctions+(DWORD)(*(pFileAddressOfNameOrdinals+i))));
 			
 		}
 	}
@@ -1268,11 +1268,11 @@ PVOID GetFunctionAddressByName(LPVOID pFileBuffer,char* pFunName)
 	return NULL;
 }
 
-//通过导出表函数序号获得函数地址,序号来自于.def文件中的定义
+//通过导出表函数序号获得函数地址RVA,序号来自于.def文件中的定义
 //pFileBuffer
 //index 序号
-//返回值:成功 该函数ImageBase+RVA
-PVOID GetFunctionAddressByOrdinals(LPVOID pFileBuffer,DWORD index)
+//返回值:成功 该函数RVA
+DWORD GetFunctionRVAByOrdinals(LPVOID pFileBuffer,DWORD index)
 {
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
 	pOptionHeader=getOptionHeader(pFileBuffer);
@@ -1298,7 +1298,60 @@ PVOID GetFunctionAddressByOrdinals(LPVOID pFileBuffer,DWORD index)
 		return NULL;
 	}
 
-	return (PVOID)(imageBase+*(pFileAddressOfFunctions+index));
+	return (DWORD)(*(pFileAddressOfFunctions+index));
 		
 }
 
+
+//获取导出表的大小,包括导出表中的函数地址表，函数名称表和函数序号表的大小，以及函数名称表所指向的字符串的大小
+//pFileBuffer
+//返回值 导出表大小
+DWORD getExportDirectorySize(LPVOID pFileBuffer){
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,1);
+	//获得导出表在FileBuffer中的Address位置
+	DWORD exportDirectoryFileAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+	//找到导出表
+	PIMAGE_EXPORT_DIRECTORY pExportDirectory=(PIMAGE_EXPORT_DIRECTORY)exportDirectoryFileAddress;
+
+	DWORD totalSize=0;
+
+	//IMAGE_EXPORT_DIRECTORY的大小
+	DWORD sizeOfExportDirectory=sizeof(IMAGE_EXPORT_DIRECTORY);
+
+	//AddressOfFunctions表大小
+	DWORD sizeOfAddressOfFunctions=(pExportDirectory->NumberOfFunctions)*4;
+
+	//AddressOfNameOrdinals表大小
+	DWORD sizeOfAddressOfNameOrdinals=(pExportDirectory->NumberOfNames)*2;
+
+	//AddressOfNames表大小
+	DWORD sizeOfAddressOfNames=(pExportDirectory->NumberOfNames)*4;
+
+	//函数名称表所有函数名称大小的总和
+	DWORD sizeOfAddressStr=0;
+
+	PDWORD pFileAddressOfNames=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNames));
+
+	//循环获得所有名称字符串数组大小，包括数组结尾0
+	DWORD i=0;
+
+	for(i=0;i<pExportDirectory->NumberOfNames;i++){
+		sizeOfAddressStr+=(strlen((char*)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,*(pFileAddressOfNames+i))))+1);
+		
+	}
+	
+	totalSize=sizeOfExportDirectory+sizeOfAddressOfFunctions+sizeOfAddressOfNameOrdinals+sizeOfAddressOfNames+sizeOfAddressStr;
+
+	return totalSize;
+
+}
+
+
+//移动导出表
+//pFileBuffer
+//fileRVA 导出表被移动到的RVA
+//返回值
+DWORD removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA){
+
+
+}

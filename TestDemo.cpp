@@ -373,7 +373,7 @@ void testAddNewSectionByFileBuffer(){
 	
 	freePBuffer(pFileBuffer);
 
-	if(!copySize){
+	if(!fileRVA){
 		printf("addNewSection Failed!\n");
 		return;
 	}
@@ -523,6 +523,7 @@ void testMergeAllSections(){
 	return;
 }
 
+//测试导出表地址转换
 void testExportDirectory()
 {
 	char* pathName=FILEPATH_IN;
@@ -544,12 +545,83 @@ void testExportDirectory()
 	int (*lpSub)(int,int);
 
 
-	lpPlus=(int(*)(int,int)) GetFunctionAddressByName(pFileBuffer,funName);
+	lpPlus=(int(*)(int,int)) ((DWORD)pFileBuffer+GetFunctionRVAByName(pFileBuffer,funName));
 	
-	lpSub=(int(*)(int,int)) GetFunctionAddressByOrdinals(pFileBuffer,15);
+	lpSub=(int(*)(int,int)) ((DWORD)pFileBuffer+(DWORD)GetFunctionRVAByOrdinals(pFileBuffer,15));
 	
 	printf("PlusResultAddr:%X\n",lpPlus);
 	printf("SubsResultAddr:%X\n",lpSub);
+
+}
+
+//测试移动导出表
+void testRemoveExportDirectory(){
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+	DWORD characteristics=0x60000020;
+
+	
+	LPVOID pFileBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
+
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	DWORD copySize=0;
+	//上移NTHeader和SectionHeaders
+	copySize=topPENTAndSectionHeader(pFileBuffer);
+	printf("topPENTHeader---%d\n",copySize);
+
+	//检查是否有足够空间添加节表
+	DWORD checkCanAddSectionFlag=checkCanAddSection(pFileBuffer);
+
+	if(!checkCanAddSectionFlag){
+		freePBuffer(pFileBuffer);
+		printf("checkCanAddSection---没有足够的空间添加节表\n");
+		return;
+
+	}
+
+	DWORD addSize=0;
+	addSize=getExportDirectorySize(pFileBuffer);
+
+	
+	//新增一个节
+	DWORD fileRVA=addNewSectionByFileBuffer(pFileBuffer,addSize,characteristics,&pNewFileBuffer);
+	
+	freePBuffer(pFileBuffer);
+
+
+	if(!fileRVA){
+		printf("addNewSection Failed!\n");
+		return;
+	}
+	
+	
+	//移动导出表
+
+	//新的导出表在FileBuffer中的首地址
+	DWORD newExportDirectoryFileBufferAddress=(DWORD)pNewFileBuffer+fileRVA;
+
+	removeExportDirectory(pNewFileBuffer,fileRVA);
+
+
+	copySize=getFileBufferSize(pNewFileBuffer);
+
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+	printf("新增节RVA:%X\n",fileRVA);
+
+	return;
 
 }
 
@@ -562,10 +634,11 @@ int main(int argc, char* argv[]){
 	//testAddressChangeByFileBufferAndRva();
 	//testAddCodeIntoSection();
 	//testAddNewSection();
-	testAddNewSectionByFileBuffer();
+	//testAddNewSectionByFileBuffer();
 	//testExtendTheLastSection();
 	//testMergeAllSections();
 	//testExportDirectory();
+	testRemoveExportDirectory();
 	return 0;
 }
 

@@ -259,16 +259,27 @@ PIMAGE_DATA_DIRECTORY getDataDirectory(LPVOID pFileBuffer,DWORD index);
 
 
 //********************导出表********************************
-//通过导出表函数名获得函数地址
+//通过导出表函数名获得函数地址RVA
 //pFileBuffer
 //pFunName 函数名字符串指针
-//返回值:成功 该函数ImageBase+RVA
-PVOID GetFunctionAddressByName(LPVOID pFileBuffer,char* pFunName);
+//返回值:成功 该函数RVA
+DWORD GetFunctionRVAByName(LPVOID pFileBuffer,char* pFunName);
 
-//通过导出表函数序号获得函数地址,序号来自于.def文件中的定义
+//通过导出表函数序号获得函数地址RVA,序号来自于.def文件中的定义
 //pFileBuffer
 //index 序号
-//返回值:成功 该函数ImageBase+RVA
-PVOID GetFunctionAddressByOrdinals(LPVOID pFileBuffer,DWORD index);
+//返回值:成功 该函数RVA
+DWORD GetFunctionRVAByOrdinals(LPVOID pFileBuffer,DWORD index);
+
+//获取导出表的大小,包括导出表中的函数地址表，函数名称表和函数序号表的大小，以及函数名称表所指向的字符串的大小
+//pFileBuffer
+//返回值 导出表大小
+DWORD getExportDirectorySize(LPVOID pFileBuffer);
+
+//移动导出表
+//pFileBuffer
+//fileRVA 导出表被移动到的RVA
+//返回值
+DWORD removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA);
 
 #endif
