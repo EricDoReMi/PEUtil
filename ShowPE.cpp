@@ -165,7 +165,7 @@ VOID PrintRelocationTable(LPVOID pFileBuffer)
 {
 
 	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,6);
-	//获得导出表在FileBuffer中的Address位置
+	//获得重定位表在FileBuffer中的Address位置
 	DWORD relocationFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
 
 	//找到

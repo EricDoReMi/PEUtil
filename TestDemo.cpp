@@ -688,6 +688,113 @@ void testRemoveRelocationDirectory(){
 
 }
 
+//修改DLL的ImageBase,根据重定位表修正，然后存盘.看DLL是否可以使用.
+VOID testChangeImageBase(DWORD newImageBase)
+{
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+	
+
+	
+	LPVOID pFileBuffer=NULL;
+
+
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	DWORD copySize=0;
+
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pFileBuffer);
+	DWORD imageBase = pOptionHeader->ImageBase;
+
+	DWORD gapImageBase=0;
+
+	if(imageBase>newImageBase){
+		gapImageBase=imageBase-newImageBase;
+	}else{
+		gapImageBase=newImageBase-imageBase;
+	}
+
+	pOptionHeader->ImageBase=newImageBase;
+
+	printf("%x,%x\n",pOptionHeader->ImageBase,newImageBase);
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,6);
+	//获得重定位表在FileBuffer中的Address位置
+	DWORD relocationFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+	
+	//找到重定位表位置
+	PIMAGE_BASE_RELOCATION pRelocationTables=(PIMAGE_BASE_RELOCATION)relocationFileBufferAddress;
+
+	while(pRelocationTables->VirtualAddress)
+	{
+	
+		DWORD sizeOfBlock=pRelocationTables->SizeOfBlock;
+		DWORD virtualAddress=pRelocationTables->VirtualAddress;
+		
+		
+		//修改每个重定位表指向的地址
+		//printf("***表:%d\tsizeOfBlock:%d\tvirtualAddress:%X\tsectionIndex:%d\n",i,sizeOfBlock,virtualAddress,sectionIndex);
+		//计算BLOCK的数量
+		DWORD numBlock=0;
+		numBlock=(sizeOfBlock-8)/2;
+		
+		DWORD j=0;
+		PWORD pStartBlock=(PWORD)pRelocationTables+4;
+		for(j=0;j<numBlock;j++)
+		{
+			//硬编码地方的地址
+			DWORD rvaChange=(DWORD)((*(PWORD)pStartBlock)&0x0FFF)+virtualAddress;
+			DWORD isChange=(*(PWORD)pStartBlock)&0xF000;
+			PDWORD fileBufferAddress=(PDWORD)RvaToFileBufferAddress(pFileBuffer,rvaChange);
+		
+			if((isChange^0x3000)==0){
+				if(imageBase>newImageBase){
+					*fileBufferAddress-=gapImageBase;
+					
+				}else{
+					*fileBufferAddress+=gapImageBase;
+				}
+			}
+			
+
+		
+	
+			pStartBlock++;
+
+		}
+		
+
+		//下一个重定位表地址
+		pRelocationTables=(PIMAGE_BASE_RELOCATION)((char*)pRelocationTables+sizeOfBlock);
+
+
+	}
+
+	
+
+	copySize=getFileBufferSize(pFileBuffer);
+
+	copySize=MemeryTOFile(pFileBuffer,copySize,pathNameDes);
+	freePBuffer(pFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+
+	return;
+
+
+
+}	
+
+
 int main(int argc, char* argv[]){
 
 	//testPrinter();
@@ -702,7 +809,8 @@ int main(int argc, char* argv[]){
 	//testMergeAllSections();
 	//testExportDirectory();
 	//testRemoveExportDirectory();
-	testRemoveRelocationDirectory();
+	//testRemoveRelocationDirectory();
+	testChangeImageBase(0x500000);
 	return 0;
 }
 
