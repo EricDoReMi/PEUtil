@@ -616,7 +616,73 @@ void testRemoveExportDirectory(){
 		return;
 	}
 
-	printf("新增节RVA:%X\n",fileRVA);
+
+
+	return;
+
+}
+
+//测试移动重定位表
+void testRemoveRelocationDirectory(){
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+	DWORD characteristics=0x60000020;
+
+	
+	LPVOID pFileBuffer=NULL;
+	LPVOID pNewFileBuffer=NULL;
+
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	DWORD copySize=0;
+	//上移NTHeader和SectionHeaders
+	copySize=topPENTAndSectionHeader(pFileBuffer);
+	printf("topPENTHeader---%d\n",copySize);
+
+	//检查是否有足够空间添加节表
+	DWORD checkCanAddSectionFlag=checkCanAddSection(pFileBuffer);
+
+	if(!checkCanAddSectionFlag){
+		freePBuffer(pFileBuffer);
+		printf("checkCanAddSection---没有足够的空间添加节表\n");
+		return;
+
+	}
+
+	DWORD addSize=0;
+	addSize=getRelocationDirectorySize(pFileBuffer);
+
+	
+	//新增一个节
+	DWORD fileRVA=addNewSectionByFileBuffer(pFileBuffer,addSize,characteristics,&pNewFileBuffer);
+	
+	freePBuffer(pFileBuffer);
+
+
+	if(!fileRVA){
+		printf("addNewSection Failed!\n");
+		return;
+	}
+	
+	
+	//移动重定位表
+	removeRelocationDirectory(pNewFileBuffer,fileRVA);
+
+
+	copySize=getFileBufferSize(pNewFileBuffer);
+
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
 
 	return;
 
@@ -635,7 +701,8 @@ int main(int argc, char* argv[]){
 	//testExtendTheLastSection();
 	//testMergeAllSections();
 	//testExportDirectory();
-	testRemoveExportDirectory();
+	//testRemoveExportDirectory();
+	testRemoveRelocationDirectory();
 	return 0;
 }
 

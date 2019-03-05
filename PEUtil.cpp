@@ -1302,6 +1302,7 @@ DWORD GetFunctionRVAByOrdinals(LPVOID pFileBuffer,DWORD index)
 		
 }
 
+//******************************ExportDirectory******************************
 
 //获取导出表的大小,包括导出表中的函数地址表，函数名称表和函数序号表的大小，以及函数名称表所指向的字符串的大小
 //pFileBuffer
@@ -1422,6 +1423,76 @@ void removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA){
 
 	//修改目录项
 	pDataDirectory->VirtualAddress=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newExportDirectoryAddr);
+
+
+	return;
+
+}
+
+//******************************RalocationDirectory******************************
+//获取重定位表的大小
+//pFileBuffer
+//返回值 重定位表的大小
+DWORD getRelocationDirectorySize(LPVOID pFileBuffer){
+
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,6);
+	//获得导出表在FileBuffer中的Address位置
+	DWORD relocationFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到重定位表
+	PIMAGE_BASE_RELOCATION pRelocationTables=(PIMAGE_BASE_RELOCATION)relocationFileBufferAddress;
+
+	DWORD totalSize=0;
+
+
+
+	//pRelocationTables->SizeOfBlock || pRelocationTables->VirtualAddress 全为0时，则遍历结束
+	while(pRelocationTables->VirtualAddress)
+	{
+		
+		DWORD sizeOfBlock=pRelocationTables->SizeOfBlock;
+
+		totalSize+=sizeOfBlock;
+		
+
+		//下一个重定位表地址
+		pRelocationTables=(PIMAGE_BASE_RELOCATION)((char*)pRelocationTables+sizeOfBlock);
+
+
+	}
+
+	return totalSize;
+
+}
+
+//移动重定位表
+//pFileBuffer
+//fileRVA 导出表被移动到的RVA
+void removeRelocationDirectory(LPVOID pFileBuffer,DWORD fileRVA){
+	//新的重定位表在FileBuffer中的首地址
+	DWORD newRelocationDirectoryFileBufferAddress=(DWORD)pFileBuffer+fileRVA;
+
+	//用于复制表格时的指针
+	char* newRelocationDirectoryPointer=(char*)newRelocationDirectoryFileBufferAddress;
+
+	//寻找重定位表
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,6);
+	//获得重定位表在FileBuffer中的Address位置
+	DWORD relocationDirectoryFileAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+	//找到重定位表
+	PIMAGE_BASE_RELOCATION pRelocationDirectory=(PIMAGE_BASE_RELOCATION)relocationDirectoryFileAddress;
+
+	//重定位表的大小
+	DWORD sizeOfRelocationDirectory=getRelocationDirectorySize(pFileBuffer);
+
+	//复制重定位表
+	memcpy(newRelocationDirectoryPointer,(char*)pRelocationDirectory,sizeOfRelocationDirectory);
+
+	
+
+	//修改目录项
+	pDataDirectory->VirtualAddress=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newRelocationDirectoryFileBufferAddress);
 
 
 	return;

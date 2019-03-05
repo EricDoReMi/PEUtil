@@ -281,4 +281,14 @@ DWORD getExportDirectorySize(LPVOID pFileBuffer);
 //fileRVA 导出表被移动到的RVA
 void removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA);
 
+//获取重定位表的大小
+//pFileBuffer
+//返回值 重定位表的大小
+DWORD getRelocationDirectorySize(LPVOID pFileBuffer);
+
+//移动重定位表
+//pFileBuffer
+//fileRVA 导出表被移动到的RVA
+void removeRelocationDirectory(LPVOID pFileBuffer,DWORD fileRVA);
+
 #endif
