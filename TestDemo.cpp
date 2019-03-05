@@ -1,7 +1,7 @@
 #include "ShowPE.h"
 
 #define FILEPATH_IN      "D:\\VCWorkspace\\TestDll\\Debug\\TestDll.dll"                         // "D:\\VCWorkspace\\MyTest\\TestDefDll.dll"              //输入文件路径
-#define FILEPATH_OUT     "TestWin32out.exe"             //输出文件路径
+#define FILEPATH_OUT     "TestDllNew.dll"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
 #define MESSAGEBOXADDR    0x7720FDAE                   //MessageBox地址，每次开机都会变化
 #define SECTIONNUM        0x1;                          //要向哪个目标Section添加代码了
@@ -602,9 +602,6 @@ void testRemoveExportDirectory(){
 	
 	
 	//移动导出表
-
-	//新的导出表在FileBuffer中的首地址
-	DWORD newExportDirectoryFileBufferAddress=(DWORD)pNewFileBuffer+fileRVA;
 
 	removeExportDirectory(pNewFileBuffer,fileRVA);
 

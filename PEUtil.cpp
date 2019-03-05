@@ -1350,8 +1350,80 @@ DWORD getExportDirectorySize(LPVOID pFileBuffer){
 //移动导出表
 //pFileBuffer
 //fileRVA 导出表被移动到的RVA
-//返回值
-DWORD removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA){
+void removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA){
+	//新的导出表在FileBuffer中的首地址
+	DWORD newExportDirectoryFileBufferAddress=(DWORD)pFileBuffer+fileRVA;
 
+	//用于复制表格时的指针
+	char* newExportDirectoryPointer=(char*)newExportDirectoryFileBufferAddress;
+
+	//寻找导出表
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,1);
+	//获得导出表在FileBuffer中的Address位置
+	DWORD exportDirectoryFileAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+	//找到导出表
+	PIMAGE_EXPORT_DIRECTORY pExportDirectory=(PIMAGE_EXPORT_DIRECTORY)exportDirectoryFileAddress;
+
+	//复制AddressOfFunctions
+	PDWORD pFileAddressOfFunctions=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfFunctions));
+
+	memcpy(newExportDirectoryPointer,pFileAddressOfFunctions,(pExportDirectory->NumberOfFunctions)*4);
+	
+	//记录newAddressOfFunctions
+	PDWORD newAddressOfFunctions=(PDWORD)newExportDirectoryPointer;
+
+	newExportDirectoryPointer+=(pExportDirectory->NumberOfFunctions)*4;
+	
+	//复制AddressOfNames
+	PDWORD pFileAddressOfNames=(PDWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNames));
+
+	memcpy(newExportDirectoryPointer,pFileAddressOfFunctions,(pExportDirectory->NumberOfNames)*4);
+
+    //记录newFileAddressOfNames
+	PDWORD newFileAddressOfNames=(PDWORD)newExportDirectoryPointer;
+
+	newExportDirectoryPointer+=(pExportDirectory->NumberOfNames)*4;
+
+	//复制AddressOfNameOrdinals
+	PWORD pFileAddressOfNameOrdinals=(PWORD)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,pExportDirectory->AddressOfNameOrdinals));
+	
+	memcpy(newExportDirectoryPointer,pFileAddressOfNameOrdinals,(pExportDirectory->NumberOfNames)*2);
+
+	//记录newFileAddressOfNameOrdinals
+	PDWORD newFileAddressOfNameOrdinals=(PDWORD)newExportDirectoryPointer;
+
+	newExportDirectoryPointer+=(pExportDirectory->NumberOfNames)*2;
+
+	//复制所有的函数名
+	DWORD i=0;
+	for(i=0;i<pExportDirectory->NumberOfNames;i++)
+	{
+		char* pCopyStrAddr=(char*)((DWORD)pFileBuffer+RvaToFileOffset(pFileBuffer,*(pFileAddressOfNames+i)));
+		DWORD copySize=strlen(pCopyStrAddr)+1;
+		memcpy(newExportDirectoryPointer,pCopyStrAddr,copySize);
+		//printf("%s\n",newExportDirectoryPointer);
+		
+		*(newFileAddressOfNames+i)=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newExportDirectoryPointer);
+		newExportDirectoryPointer+=copySize;
+				
+	}
+
+	//复制IMAGE_EXPORT_DIRECTORY结构
+
+	//记录newExportDirectoryAddr
+	PIMAGE_EXPORT_DIRECTORY newExportDirectoryAddr=(PIMAGE_EXPORT_DIRECTORY)newExportDirectoryPointer;
+
+	*(newExportDirectoryAddr)=*(pExportDirectory);
+
+	//修改newExportDirectory中的地址了
+	newExportDirectoryAddr->AddressOfFunctions=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newAddressOfFunctions);
+	newExportDirectoryAddr->AddressOfNameOrdinals=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newFileAddressOfNameOrdinals);
+	newExportDirectoryAddr->AddressOfNames=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newFileAddressOfNames);
+
+	//修改目录项
+	pDataDirectory->VirtualAddress=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newExportDirectoryAddr);
+
+
+	return;
 
 }

@@ -279,7 +279,6 @@ DWORD getExportDirectorySize(LPVOID pFileBuffer);
 //移动导出表
 //pFileBuffer
 //fileRVA 导出表被移动到的RVA
-//返回值
-DWORD removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA);
+void removeExportDirectory(LPVOID pFileBuffer,DWORD fileRVA);
 
 #endif
