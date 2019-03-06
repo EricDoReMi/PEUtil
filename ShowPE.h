@@ -24,7 +24,10 @@ VOID PrintDataDirectory(LPVOID pFileBuffer);
 //打印导出表
 VOID PrintExportTable(LPVOID pFileBuffer);
 
+//打印重定位表
 VOID PrintRelocationTable(LPVOID pFileBuffer);
 
+//打印导入表
+VOID PrintImportTable(LPVOID pFileBuffer);
 
 #endif

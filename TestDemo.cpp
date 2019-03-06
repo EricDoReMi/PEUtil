@@ -48,7 +48,10 @@ void testPrinter(){
 		//PrintExportTable(pFileBuffer);
 
 		//打印重定向表
-		PrintRelocationTable(pFileBuffer);
+		//PrintRelocationTable(pFileBuffer);
+
+		//打印导入表
+		PrintImportTable(pFileBuffer);
 
 }
 
@@ -810,7 +813,7 @@ int main(int argc, char* argv[]){
 	//testExportDirectory();
 	//testRemoveExportDirectory();
 	//testRemoveRelocationDirectory();
-	testChangeImageBase(0x500000);
+	//testChangeImageBase(0x500000);
 	return 0;
 }
 

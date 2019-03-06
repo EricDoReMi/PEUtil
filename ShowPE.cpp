@@ -217,7 +217,83 @@ VOID PrintRelocationTable(LPVOID pFileBuffer)
 	}
 
 
+}
+
+//打印导入表
+VOID PrintImportTable(LPVOID pFileBuffer)
+{
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,2);
+	//获得导入表在FileBuffer中的Address位置
+	DWORD importTableFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到第一个导入表
+	PIMAGE_IMPORT_DESCRIPTOR pImportTables=(PIMAGE_IMPORT_DESCRIPTOR)importTableFileBufferAddress;
+
+
+	printf("=============导入表信息=================\n");
+	
+	while(pImportTables->Characteristics|pImportTables->FirstThunk|pImportTables->ForwarderChain|pImportTables->Name|pImportTables->OriginalFirstThunk|pImportTables->TimeDateStamp)
+	{
+		
+		DWORD nameRVA=pImportTables->Name;
+		char* pDllNames=(char*)RvaToFileBufferAddress(pFileBuffer,nameRVA);
+		printf("***********%s*********\n",pDllNames);
+		
+		DWORD originalFirstThunk=pImportTables->OriginalFirstThunk;
+		DWORD firstThunk=pImportTables->FirstThunk;
+
+		PDWORD pOriginalFirstThunk=(PDWORD)RvaToFileBufferAddress(pFileBuffer,originalFirstThunk);
+
+		PDWORD pFirstThunk=(PDWORD)RvaToFileBufferAddress(pFileBuffer,firstThunk);
+
+		//遍历OriginalFirstThunk
+		printf("------------OriginalFirstThunk----------\n");
+		while(*pOriginalFirstThunk){
+			DWORD imageData=(DWORD)*pOriginalFirstThunk;
+			//最高位判断最高位是否为1 如果是,那么除去最高位的值就是函数的导出序号				
+
+			if(imageData & 0x80000000){
+				DWORD indexOfExport=imageData & 0x7FFFFFFF;//导出表的函数序号
+				printf("导出表序号:%d\n",indexOfExport);
+
+			}else{
+				PIMAGE_IMPORT_BY_NAME pImportByName=(PIMAGE_IMPORT_BY_NAME)RvaToFileBufferAddress(pFileBuffer,imageData);//导出表函数名
+				char* pImportFunNames=(char*)pImportByName->Name;
+				printf("导出表名称:%s\n",pImportFunNames);
+			}
+			pOriginalFirstThunk++;
+		}
+
+		//遍历FirstThunk
+		printf("------------FirstThunk----------\n");
+		while(*pFirstThunk){
+			DWORD imageData=(DWORD)*pFirstThunk;
+			//最高位判断最高位是否为1 如果是,那么除去最高位的值就是函数的导出序号				
+
+			if(imageData & 0x80000000){
+				DWORD indexOfExport=imageData & 0x7FFFFFFF;//导出表的函数序号
+				printf("导出表序号:%d\n",indexOfExport);
+
+			}else{
+				PIMAGE_IMPORT_BY_NAME pImportByName=(PIMAGE_IMPORT_BY_NAME)RvaToFileBufferAddress(pFileBuffer,imageData);//导出表函数名
+				char* pImportFunNames=(char*)pImportByName->Name;
+				printf("导出表名称:%s\n",pImportFunNames);
+			}
+			pFirstThunk++;
+		}
+
+	
+		
+
+		//下一个导入表地址
+		pImportTables++;
+
+
+	}
 
 
 }	
+
+
 
