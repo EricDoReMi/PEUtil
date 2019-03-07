@@ -271,6 +271,12 @@ DWORD RvaToFileOffset(IN LPVOID pFileBuffer,IN DWORD dwRva){
 	WORD sectionNum=getSectionNum(pFileBuffer);
 	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
 	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
+
+	DWORD sizeOfHeaders = POptionPEHeader->SizeOfHeaders;
+
+	if(dwRva<sizeOfHeaders){
+		return dwRva;
+	}
 	
 	DWORD i=0;
 	DWORD virtualAddress=0;
@@ -312,6 +318,8 @@ DWORD RvaToSectionIndex(IN LPVOID pFileBuffer,IN DWORD dwRva){
 	WORD sectionNum=getSectionNum(pFileBuffer);
 	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
 	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
+
+
 	
 	DWORD i=0;
 	DWORD virtualAddress=0;
@@ -356,6 +364,12 @@ DWORD FileOffsetToRva(IN LPVOID pFileBuffer,IN DWORD dwFileOffSet){
 	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
 	DWORD imageBase = POptionPEHeader->ImageBase;
 
+	DWORD sizeOfHeaders = POptionPEHeader->SizeOfHeaders;
+
+	if(dwFileOffSet<sizeOfHeaders){
+		return dwFileOffSet;
+	}
+	
 
 	DWORD i=0;
 	DWORD virtualAddress=0;
@@ -398,7 +412,13 @@ DWORD RvaToFileBufferAddress(IN LPVOID pFileBuffer,IN DWORD dwRva){
 	
 	WORD sectionNum=getSectionNum(pFileBuffer);
 	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
+	
+	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
+	DWORD sizeOfHeaders = POptionPEHeader->SizeOfHeaders;
 
+	if(dwRva<sizeOfHeaders){
+		return (DWORD)pFileBuffer+dwRva;
+	}
 
 	
 	DWORD i=0;
@@ -443,6 +463,13 @@ DWORD FileBufferAddressToRva(IN LPVOID pFileBuffer,IN DWORD dwFileAddress){
 	PIMAGE_SECTION_HEADER pSectionHeader = getSectionHeader(pFileBuffer);
 	
 	DWORD gapImageBase=dwFileAddress-(DWORD)pFileBuffer;
+	
+	PIMAGE_OPTIONAL_HEADER32 POptionPEHeader=getOptionHeader(pFileBuffer);
+	DWORD sizeOfHeaders = POptionPEHeader->SizeOfHeaders;
+
+	if(gapImageBase<sizeOfHeaders){
+		return gapImageBase;
+	}
 
 	DWORD i=0;
 	DWORD virtualAddress=0;
@@ -454,7 +481,7 @@ DWORD FileBufferAddressToRva(IN LPVOID pFileBuffer,IN DWORD dwFileAddress){
 		DWORD pointerToRawData=pSectionHeader->PointerToRawData;
 		DWORD sizeOfRawData=pSectionHeader->SizeOfRawData;
 		
-		if(gapImageBase>=pointerToRawData && gapImageBase<=(pointerToRawData+sizeOfRawData)){
+		if(gapImageBase>=pointerToRawData && gapImageBase<(pointerToRawData+sizeOfRawData)){
 			indexSection=i+1;
 			//找到了所在节的位置
 			return virtualAddress+(gapImageBase-pointerToRawData);

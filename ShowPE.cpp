@@ -239,7 +239,8 @@ VOID PrintImportTable(LPVOID pFileBuffer)
 		DWORD nameRVA=pImportTables->Name;
 		char* pDllNames=(char*)RvaToFileBufferAddress(pFileBuffer,nameRVA);
 		printf("***********%s*********\n",pDllNames);
-		
+		DWORD timeDateStamp = pImportTables->TimeDateStamp;
+		printf("***timeStamp:%d***\n");
 		DWORD originalFirstThunk=pImportTables->OriginalFirstThunk;
 		DWORD firstThunk=pImportTables->FirstThunk;
 
@@ -255,12 +256,12 @@ VOID PrintImportTable(LPVOID pFileBuffer)
 
 			if(imageData & 0x80000000){
 				DWORD indexOfExport=imageData & 0x7FFFFFFF;//导出表的函数序号
-				printf("导出表序号:%d\n",indexOfExport);
+				printf("导出表函数序号:%d\n",indexOfExport);
 
 			}else{
 				PIMAGE_IMPORT_BY_NAME pImportByName=(PIMAGE_IMPORT_BY_NAME)RvaToFileBufferAddress(pFileBuffer,imageData);//导出表函数名
 				char* pImportFunNames=(char*)pImportByName->Name;
-				printf("导出表名称:%s\n",pImportFunNames);
+				printf("导出表函数名称:%s\n",pImportFunNames);
 			}
 			pOriginalFirstThunk++;
 		}
@@ -282,9 +283,7 @@ VOID PrintImportTable(LPVOID pFileBuffer)
 			}
 			pFirstThunk++;
 		}
-
 	
-		
 
 		//下一个导入表地址
 		pImportTables++;
@@ -293,7 +292,68 @@ VOID PrintImportTable(LPVOID pFileBuffer)
 	}
 
 
+}
+
+//打印绑定导入表
+VOID PrintBoundImportTable(LPVOID pFileBuffer)
+{
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,12);
+
+	//获得导入表在FileBuffer中的Address位置
+	DWORD importBoundTableFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到第一个绑定导入表
+	PIMAGE_BOUND_IMPORT_DESCRIPTOR pImportBoundTable=(PIMAGE_BOUND_IMPORT_DESCRIPTOR)importBoundTableFileBufferAddress;
+	
+	//绑定导入表的表头
+	PIMAGE_BOUND_IMPORT_DESCRIPTOR pImportBoundTable1=pImportBoundTable;
+
+	printf("=============绑定导入表信息=================\n");
+	DWORD i=0;
+
+	while(pImportBoundTable->NumberOfModuleForwarderRefs|pImportBoundTable->OffsetModuleName|pImportBoundTable->TimeDateStamp)
+	{
+		DWORD timeDateStamp=pImportBoundTable->TimeDateStamp;
+		WORD  numberOfModuleForwarderRefs=0;
+
+		numberOfModuleForwarderRefs=pImportBoundTable->NumberOfModuleForwarderRefs;
+		
+		printf("---IMAGE_BOUND_IMPORT_DESCRIPTOR---\n");
+		printf("numberOfModuleForwarderRefs:%d\n",numberOfModuleForwarderRefs);
+
+		printf("timeDateStamp:%d\n",pImportBoundTable->TimeDateStamp);
+		
+		printf("OffsetModuleName:%s\n",(char*)pImportBoundTable1+pImportBoundTable->OffsetModuleName);
+
+		DWORD j=0;
+		
+		PIMAGE_BOUND_FORWARDER_REF pBoundForwarderRef=(PIMAGE_BOUND_FORWARDER_REF)pImportBoundTable+1;
+
+		
+		printf("***********IMAGE_BOUND_FORWARDER_REF***************\n");
+
+		for(j=0;j<numberOfModuleForwarderRefs;j++){
+			
+			printf("timeDateStamp:%d\n",pBoundForwarderRef->TimeDateStamp);
+			printf("OffsetModuleName:%s\n",(char*)pImportBoundTable1+pBoundForwarderRef->OffsetModuleName);
+			printf("Reserved:%d\n",pBoundForwarderRef->Reserved);
+
+			pBoundForwarderRef++;
+			
+		}
+		
+		
+
+		//下一个绑定导入表地址
+		pImportBoundTable+=(numberOfModuleForwarderRefs+1);
+
+
+	}
+
+
 }	
+
 
 
 

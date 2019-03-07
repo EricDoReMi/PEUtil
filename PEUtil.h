@@ -291,4 +291,7 @@ DWORD getRelocationDirectorySize(LPVOID pFileBuffer);
 //fileRVA 导出表被移动到的RVA
 void removeRelocationDirectory(LPVOID pFileBuffer,DWORD fileRVA);
 
+//打印绑定导入表
+VOID PrintBoundImportTable(LPVOID pFileBuffer);
+
 #endif

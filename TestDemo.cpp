@@ -51,7 +51,10 @@ void testPrinter(){
 		//PrintRelocationTable(pFileBuffer);
 
 		//打印导入表
-		PrintImportTable(pFileBuffer);
+		//PrintImportTable(pFileBuffer);
+
+		//打印绑定导入表
+		PrintBoundImportTable(pFileBuffer);
 
 }
 
@@ -800,7 +803,7 @@ VOID testChangeImageBase(DWORD newImageBase)
 
 int main(int argc, char* argv[]){
 
-	//testPrinter();
+	testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
