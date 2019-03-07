@@ -1,9 +1,8 @@
 #ifndef __PEUTIL_H__
 #define __PEUTIL_H__
-#include<memory.h>
-#include<Windows.h>
-#include<stdio.h>
+#include "Common.h"
 #include "PEUtil.h"
+
 
 //全局变量声明
 extern BYTE shellcode[];
@@ -291,7 +290,12 @@ DWORD getRelocationDirectorySize(LPVOID pFileBuffer);
 //fileRVA 导出表被移动到的RVA
 void removeRelocationDirectory(LPVOID pFileBuffer,DWORD fileRVA);
 
-//打印绑定导入表
-VOID PrintBoundImportTable(LPVOID pFileBuffer);
+
+
+//******************************ImportTableDirectory******************************
+//获取导入表所有结构体的大小
+//pFileBuffer
+//返回值 导入表的大小
+DWORD getImageImportDescriptorsSize(LPVOID pFileBuffer);
 
 #endif

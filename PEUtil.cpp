@@ -1516,7 +1516,6 @@ void removeRelocationDirectory(LPVOID pFileBuffer,DWORD fileRVA){
 	//复制重定位表
 	memcpy(newRelocationDirectoryPointer,(char*)pRelocationDirectory,sizeOfRelocationDirectory);
 
-	
 
 	//修改目录项
 	pDataDirectory->VirtualAddress=(DWORD)FileBufferAddressToRva(pFileBuffer,(DWORD)newRelocationDirectoryFileBufferAddress);
@@ -1525,3 +1524,34 @@ void removeRelocationDirectory(LPVOID pFileBuffer,DWORD fileRVA){
 	return;
 
 }
+
+//******************************ImportTableDirectory******************************
+//获取导入表所有结构体的大小
+//pFileBuffer
+//返回值 导入表的大小
+DWORD getImageImportDescriptorsSize(LPVOID pFileBuffer){
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,2);
+	//获得导入表在FileBuffer中的Address位置
+	DWORD importTableFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到第一个导入表
+	PIMAGE_IMPORT_DESCRIPTOR pImportTables=(PIMAGE_IMPORT_DESCRIPTOR)importTableFileBufferAddress;
+
+	DWORD sizeOfImageImportDescriptors=0;
+	DWORD sizeofUnitImageImportDescriptor=sizeof(IMAGE_IMPORT_DESCRIPTOR);
+
+	while(pImportTables->Characteristics|pImportTables->FirstThunk|pImportTables->ForwarderChain|pImportTables->Name|pImportTables->OriginalFirstThunk|pImportTables->TimeDateStamp)
+	{
+						
+		sizeOfImageImportDescriptors+=sizeofUnitImageImportDescriptor;
+		//下一个导入表地址
+		pImportTables++;
+
+	}
+
+	return sizeOfImageImportDescriptors;
+}
+
+
+
+

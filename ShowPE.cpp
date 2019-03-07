@@ -279,7 +279,7 @@ VOID PrintImportTable(LPVOID pFileBuffer)
 			}else{
 				PIMAGE_IMPORT_BY_NAME pImportByName=(PIMAGE_IMPORT_BY_NAME)RvaToFileBufferAddress(pFileBuffer,imageData);//导出表函数名
 				char* pImportFunNames=(char*)pImportByName->Name;
-				printf("导出表名称:%s\n",pImportFunNames);
+				printf("导出表函数名称:%s\n",pImportFunNames);
 			}
 			pFirstThunk++;
 		}

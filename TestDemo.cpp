@@ -51,10 +51,10 @@ void testPrinter(){
 		//PrintRelocationTable(pFileBuffer);
 
 		//打印导入表
-		//PrintImportTable(pFileBuffer);
+		PrintImportTable(pFileBuffer);
 
 		//打印绑定导入表
-		PrintBoundImportTable(pFileBuffer);
+		//PrintBoundImportTable(pFileBuffer);
 
 }
 

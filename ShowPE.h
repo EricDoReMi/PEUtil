@@ -30,4 +30,7 @@ VOID PrintRelocationTable(LPVOID pFileBuffer);
 //打印导入表
 VOID PrintImportTable(LPVOID pFileBuffer);
 
+//打印绑定导入表
+VOID PrintBoundImportTable(LPVOID pFileBuffer);
+
 #endif
