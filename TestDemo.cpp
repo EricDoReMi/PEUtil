@@ -1,10 +1,10 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "D:\\VCWorkspace\\TestDll\\Debug\\TestDll.dll"                         // "D:\\VCWorkspace\\MyTest\\TestDefDll.dll"              //输入文件路径
-#define FILEPATH_OUT     "TestDllNew.dll"             //输出文件路径
+#define FILEPATH_IN      "TestWin32.exe"                         // "D:\\VCWorkspace\\TestDll\\Debug\\TestDll.dll"              //输入文件路径
+#define FILEPATH_OUT     "TestWin32Out.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
-#define MESSAGEBOXADDR    0x7720FDAE                   //MessageBox地址，每次开机都会变化
-#define SECTIONNUM        0x1;                          //要向哪个目标Section添加代码了
+#define MESSAGEBOXADDR    0x7469FDAE                   //MessageBox地址，每次开机都会变化
+#define SECTIONNUM        0x6;                          //要向哪个目标Section添加代码了
 
 //要嵌入的代码
 BYTE shellCode[]={
@@ -161,7 +161,7 @@ void testAddressChangeByFileBufferAndRva(){
 	printf("RVA:%X\n",RVA);
 }
 
-//按define中定义的变量将MessageBox函数插入到指定Section中，运行时弹出MessageBox，然后正常运行FILEPATH_IN原来的代码
+//按define中定义的变量将MessageBox函数插入到指定Section(Section的virtualSize<sizeOfRawdata)中，运行时弹出MessageBox，然后正常运行FILEPATH_IN原来的代码
 void testAddCodeIntoSection(){
 	char* pathName=FILEPATH_IN;
 	char* pathNameDes=FILEPATH_OUT;
@@ -454,6 +454,53 @@ void testExtendTheLastSection(){
 		printf("CopyImageBufferToNewBuffer Failed!\n");
 		return;
 	}
+
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+	return;
+}
+
+//按FileBuffer扩大最后一个Section
+void testExtendTheLastSectionByFileBuffer(){
+	char* pathName=FILEPATH_IN;
+	char* pathNameDes=FILEPATH_OUT;
+	DWORD addSizeNew=9000;
+	
+	//一般设置这个权限0x60000020; 只有一个节的情况下设置这个权限0xE0000060;
+	DWORD characteristics=0xE0000060;
+
+	
+	LPVOID pFileBuffer=NULL;
+
+	LPVOID pNewFileBuffer=NULL;
+
+	DWORD copySize=0;
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+
+
+
+
+	//扩大最后一个节了
+	DWORD checkExtendLastSection=extendTheLastSectionByFileBuffer(pFileBuffer,addSizeNew,characteristics,&pNewFileBuffer);
+	
+	freePBuffer(pFileBuffer);
+
+	if(!checkExtendLastSection){
+		printf("extendLastSection Failed!\n");
+		return;
+	}
+	
+	copySize=getFileBufferSize(pNewFileBuffer);
 
 	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
 	freePBuffer(pNewFileBuffer);
@@ -797,13 +844,127 @@ VOID testChangeImageBase(DWORD newImageBase)
 	return;
 
 
-
 }	
+
+//测试注入导入表
+void testInjectImportDirectory(){
+	char* pathName=FILEPATH_IN;
+	char* dllPathName="InjectDll.dll";
+	char* pathNameDes=FILEPATH_OUT;
+	//一般设置这个权限0x60000020; 只有一个节的情况下设置这个权限0xE0000060;
+	DWORD characteristics=0xE0000060;
+
+	char* pFunName="ExportFunction";//要注入的导入表名称
+
+	char* pDllName=NULL;//Dll表名称
+
+	DWORD addSizeNew=0;
+	
+
+//获得Dll文件的信息
+//pFileInputPath 文件的路径
+//pFunName 导入表函数名
+//pDllNames,输出Dll文件的名字
+   addSizeNew = getDllExportInfor(dllPathName,pFunName,&pDllName);
+	
+	
+
+	
+	LPVOID pFileBuffer=NULL;
+
+	LPVOID pNewFileBuffer=NULL;
+
+	DWORD copySize=0;
+
+	//FileToFileBuffer
+	if(!ReadPEFile(pathName,&pFileBuffer)){
+		return ;
+	}
+
+	DWORD imageImportDescriptorsSize=getImageImportDescriptorsSize(pFileBuffer);
+
+	addSizeNew+=imageImportDescriptorsSize;
+
+	//扩大最后一个节了
+	DWORD fileRVA=extendTheLastSectionByFileBuffer(pFileBuffer,addSizeNew,characteristics,&pNewFileBuffer);
+
+	freePBuffer(pFileBuffer);
+
+	fileRVA=removeImportDirectory(pNewFileBuffer,fileRVA,imageImportDescriptorsSize);
+
+	
+	//新增一个导入表
+	PIMAGE_IMPORT_DESCRIPTOR pNewImportDirectory=(PIMAGE_IMPORT_DESCRIPTOR)((DWORD)pNewFileBuffer+fileRVA);
+
+	//获得最后一个导入表
+	PIMAGE_IMPORT_DESCRIPTOR pLastImportDirectory=pNewImportDirectory-1;
+
+	*pNewImportDirectory=*pLastImportDirectory;
+	
+	PIMAGE_IMPORT_DESCRIPTOR pLastNullImportDirectory=pNewImportDirectory+1;
+	pLastNullImportDirectory->Characteristics=0;
+	pLastNullImportDirectory->FirstThunk=0;
+	pLastNullImportDirectory->ForwarderChain=0;
+	pLastNullImportDirectory->Name=0;
+	pLastNullImportDirectory->OriginalFirstThunk=0;
+	pLastNullImportDirectory->TimeDateStamp=0;
+
+	
+	//获得新增的INT表首地址了
+	PIMAGE_THUNK_DATA32 pINT=(PIMAGE_THUNK_DATA32)(pNewImportDirectory+2);
+
+	//设置新增节的OriginalFirstThunk
+	pNewImportDirectory->OriginalFirstThunk=FileBufferAddressToRva(pNewFileBuffer,(DWORD)pINT);
+	
+	*(PDWORD)(pINT+1)=0;
+
+	//获得新增的IAT表首地址了
+	PIMAGE_THUNK_DATA32 pIAT=pINT+2;
+	
+	//设置新增节的FirstThunk
+	pNewImportDirectory->FirstThunk=FileBufferAddressToRva(pNewFileBuffer,(DWORD)pIAT);
+
+	*(PDWORD)(pIAT+1)=0;
+	
+	//设置新增的ImageImportByName
+	PIMAGE_IMPORT_BY_NAME pImageImportByName=(PIMAGE_IMPORT_BY_NAME)(pIAT+2);
+
+	pImageImportByName->Hint=0;
+
+	strcpy((char*)(pImageImportByName->Name),pFunName);
+	
+
+	//将INT和IAT表指向ImageImportByName表
+	*(PDWORD)pINT=FileBufferAddressToRva(pNewFileBuffer,(DWORD)pImageImportByName);
+
+	*(PDWORD)pIAT=*(PDWORD)pINT;
+
+	//新增dll名称
+	char* pDllNameAdd=(char*)(pImageImportByName+1)+strlen(pFunName);
+	strcpy(pDllNameAdd,pDllName);
+	
+	pNewImportDirectory->Name=FileBufferAddressToRva(pNewFileBuffer,(DWORD)pDllNameAdd);
+	
+	copySize=getFileBufferSize(pNewFileBuffer);
+	
+	
+	copySize=MemeryTOFile(pNewFileBuffer,copySize,pathNameDes);
+	freePBuffer(pNewFileBuffer);
+
+	if(!copySize){
+		printf("MemeryTOFile Failed!\n");
+		return;
+	}
+
+	return;
+
+}
+
 
 
 int main(int argc, char* argv[]){
 
-	testPrinter();
+	//testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
@@ -812,11 +973,14 @@ int main(int argc, char* argv[]){
 	//testAddNewSection();
 	//testAddNewSectionByFileBuffer();
 	//testExtendTheLastSection();
+	//testExtendTheLastSectionByFileBuffer();
 	//testMergeAllSections();
 	//testExportDirectory();
 	//testRemoveExportDirectory();
 	//testRemoveRelocationDirectory();
 	//testChangeImageBase(0x500000);
+	testInjectImportDirectory();
+
 	return 0;
 }
 

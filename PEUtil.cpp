@@ -869,7 +869,7 @@ DWORD checkCanAddSection(IN LPVOID pBuffer){
 //sizeOfNewSection,新增的字节数
 //pNewBuffer返回成功后newBuffer地址
 //characteristics：具体的权限，如0x60000020
-//返回值 1成功 0失败
+//返回值 返回新增节首地址的RVA 0失败
 DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characteristics,OUT LPVOID* pNewImageBuffer){
 	//获得optionHeader中所需要的数据
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
@@ -932,13 +932,13 @@ DWORD addNewSection(IN LPVOID pImageBuffer,DWORD sizeOfNewSection,DWORD characte
 	pNewSectionHeader->SizeOfRawData=sizeOfNewSection;
 	pNewSectionHeader->VirtualAddress=sizeOfImage;
 	pNewSectionHeader->Characteristics=characteristics;
-	pNewSectionHeader->Misc.VirtualSize=sizeOfNewSection-sectionAlignment+1;
+	pNewSectionHeader->Misc.VirtualSize=pNewSectionHeader->SizeOfRawData;
 
 	*pNewImageBuffer=pNewImageBufferTmp;
 	
 
 	
-	return 1;
+	return pNewSectionHeader->PointerToRawData;
 }
 
 
@@ -1041,7 +1041,8 @@ DWORD addNewSectionByFileBuffer(IN LPVOID pFileBuffer,DWORD sizeOfNewSection,DWO
 	pNewSectionHeader->SizeOfRawData=newSizeOfFileSection;
 	pNewSectionHeader->VirtualAddress=sizeOfImage;
 	pNewSectionHeader->Characteristics=characteristics;
-	pNewSectionHeader->Misc.VirtualSize=newSizeOfSectionImage-sectionAlignment+1;
+	//pNewSectionHeader->Misc.VirtualSize=newSizeOfSectionImage-sectionAlignment+1;
+	pNewSectionHeader->Misc.VirtualSize=pNewSectionHeader->SizeOfRawData;
 
 	*pNewFileBuffer=pNewFileBufferTmp;
 	
@@ -1056,7 +1057,7 @@ DWORD addNewSectionByFileBuffer(IN LPVOID pFileBuffer,DWORD sizeOfNewSection,DWO
 //addSize,增加的字节数
 //pNewBuffer返回成功后newBuffer地址
 //characteristics：具体的权限，如0x60000020
-//返回值 1成功 0失败
+//返回值 返回扩大节新增首地址的在ImageBuffer中的RVA 0失败
 DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,DWORD characteristics,OUT LPVOID* pNewImageBuffer){
 	//获得optionHeader中所需要的数据
 	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
@@ -1068,7 +1069,6 @@ DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,DWORD charact
 	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pImageBuffer);
 	WORD sectionNum=fileHeader->NumberOfSections;
 
-	
 	
 	//修改addSize
 	DWORD sizeOfNewSection=changeNumberByBase(sectionAlignment,addSizeNew);
@@ -1095,9 +1095,7 @@ DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,DWORD charact
 	//将pBuffer的数据读入到pNewBufferTmp
 	memcpy(pNewImageBufferTmp,pImageBuffer,sizeOfImage);
 
-	//修改pNewImageBufferTmp的SizeOfImage
-	pOptionHeader=getOptionHeader(pNewImageBufferTmp);
-	pOptionHeader->SizeOfImage=newBufferSize;
+
 	
 	//获得pNewImageBufferTmp最后一个节表
 	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pNewImageBufferTmp,sectionNum);
@@ -1117,14 +1115,93 @@ DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,DWORD charact
 	pLastSectionHeader->SizeOfRawData+=sizeOfNewSection;
 	pLastSectionHeader->Characteristics=characteristics;
 	
-
-	pLastSectionHeader->Misc.VirtualSize=pLastSectionHeader->SizeOfRawData-sectionAlignment+1;
+	DWORD oldVirtualSize=pLastSectionHeader->Misc.VirtualSize;
+	pLastSectionHeader->Misc.VirtualSize=pLastSectionHeader->SizeOfRawData;
 	*pNewImageBuffer=pNewImageBufferTmp;
 	
 
 	
-	return 1;
+	return sizeOfImage;
 }
+
+//按fileBuffer扩展最后一个节表
+//pBuffer
+//addSize,增加的字节数
+//pNewBuffer返回成功后newBuffer地址
+//characteristics：具体的权限，如0x60000020
+//返回值 1成功 0失败
+DWORD extendTheLastSectionByFileBuffer(IN LPVOID pFileBuffer,DWORD addSizeNew,DWORD characteristics,OUT LPVOID* pNewFileBuffer){
+	//获得optionHeader中所需要的数据
+	PIMAGE_OPTIONAL_HEADER32 pOptionHeader = NULL;
+	pOptionHeader=getOptionHeader(pFileBuffer);
+	DWORD sizeOfImage=pOptionHeader->SizeOfImage;
+	DWORD fileAlignment=pOptionHeader->FileAlignment;
+	DWORD sectionAlignment=pOptionHeader->SectionAlignment;
+
+	//获得FileHeader中所需要的数据
+	PIMAGE_FILE_HEADER fileHeader = getPEHeader(pFileBuffer);
+	WORD sectionNum=fileHeader->NumberOfSections;
+
+	
+	DWORD sizeOfFileBuffer=getFileBufferSize(pFileBuffer);
+
+	//新增节加在FileBuffer中的新增大小
+	DWORD newSizeOfFileSection=changeNumberByBase(fileAlignment,addSizeNew);
+
+	//新增节加在ImageBuffer中的新增大小
+	DWORD newSizeOfSectionImage=changeNumberByBase(sectionAlignment,addSizeNew);
+
+
+	DWORD newFileBufferSize=sizeOfFileBuffer+newSizeOfFileSection;
+
+	DWORD newImageBufferSize=sizeOfImage+newSizeOfSectionImage;
+
+
+	//申请内存用于存储新的pBuffer
+	LPVOID pNewFileBufferTmp=NULL;
+	pNewFileBufferTmp=malloc(newFileBufferSize);
+
+	if(!pNewFileBufferTmp)	
+	{	
+
+		printf("extendTheLastSection---malloc pNewFileBufferTmp失败!\n ");
+		
+		return 0;
+	}
+	
+	memset(pNewFileBufferTmp,0,newFileBufferSize);
+	
+
+	//将pBuffer的数据读入到pNewFillBufferTmp
+	memcpy(pNewFileBufferTmp,pFileBuffer,sizeOfFileBuffer);
+
+	//修改pNewFillBufferTmp的SizeOfImage
+	pOptionHeader=getOptionHeader(pNewFileBufferTmp);
+	pOptionHeader->SizeOfImage=newImageBufferSize;
+	
+	//获得pNewFillBufferTmp最后一个节表
+	PIMAGE_SECTION_HEADER pLastSectionHeader=getSection(pNewFileBufferTmp,sectionNum);
+	
+	
+	
+	//修改最后一个节表名字
+	BYTE names[8]={'.','E','X','T','E','N','D',0};
+	BYTE* pName=pLastSectionHeader->Name;
+	memcpy(pName,names,8);
+	
+	//修改最后一个节表属性
+	pLastSectionHeader->SizeOfRawData+=newSizeOfFileSection;
+	pLastSectionHeader->Characteristics=characteristics;
+	
+	DWORD oldVirtualSize=pLastSectionHeader->Misc.VirtualSize;
+	pLastSectionHeader->Misc.VirtualSize=pLastSectionHeader->SizeOfRawData;
+	*pNewFileBuffer=pNewFileBufferTmp;
+	
+
+	
+	return sizeOfFileBuffer;
+}
+
 
 //合并所有节
 //pBuffer
@@ -1237,8 +1314,6 @@ DWORD changeNumberByBase(DWORD baseNumber,DWORD changeNumber){
 
 
 //===================PIMAGE_DATA_DIRECTORY=======================
-
-
 //按index获取DataDirectoryTable信息
 //pFileBuffer
 //index 序号,序号从1开始,如 1 导出表
@@ -1551,6 +1626,63 @@ DWORD getImageImportDescriptorsSize(LPVOID pFileBuffer){
 
 	return sizeOfImageImportDescriptors;
 }
+
+//获得Dll文件的信息
+//pFileInputPath 文件的路径
+//pFunName 导入表函数名
+//pDllNames,输出Dll文件的名字
+//返回 添加到PE导入表中的需要分配的大小
+DWORD getDllExportInfor(IN char* pFileInputPath,char* pFunName,char** pDllName){
+	
+	char* pDllNameFrom=getFileNameFromPath(pFileInputPath);
+	if((DWORD)pDllNameFrom==1){
+		*pDllName=pFileInputPath;
+	}else{
+		*pDllName=pDllNameFrom;
+	}
+	
+	DWORD returnSize=0;
+
+	//新增导入表所需要增加的字节数
+	returnSize=2*sizeof(IMAGE_IMPORT_DESCRIPTOR)+strlen(*pDllName)+1+(strlen(pFunName)+3)*2+16*2;	
+	
+	return returnSize;
+
+}
+
+
+//移动导入表
+//pFileBuffer
+//fileRVA 
+//imageImportDescriptorsSize,要移动的导入表的大小
+//返回 移动后新导入表末尾的下一个字节地址
+DWORD removeImportDirectory(LPVOID pFileBuffer,DWORD fileRVA,DWORD imageImportDescriptorsSize){
+		//新的导入表在FileBuffer中的首地址
+	DWORD newImportDirectoryFileBufferAddress=(DWORD)pFileBuffer+fileRVA;
+		//用于复制表格时的指针
+	char* newImportDirectoryPointer=(char*)newImportDirectoryFileBufferAddress;
+
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,2);
+	//获得导入表在FileBuffer中的Address位置
+	DWORD importTableFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+
+	//找到第一个导入表
+	PIMAGE_IMPORT_DESCRIPTOR pImportTables=(PIMAGE_IMPORT_DESCRIPTOR)importTableFileBufferAddress;
+	
+	//复制导入表
+	memcpy(newImportDirectoryPointer,(char*)pImportTables,imageImportDescriptorsSize);
+	
+
+	//修改目录项
+	pDataDirectory->VirtualAddress=(DWORD)FileBufferAddressToRva(pFileBuffer,newImportDirectoryFileBufferAddress);
+
+	return fileRVA+imageImportDescriptorsSize;
+
+}
+
+
+
+
 
 
 

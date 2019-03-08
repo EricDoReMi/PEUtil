@@ -238,6 +238,14 @@ DWORD addNewSectionByFileBuffer(IN LPVOID pFileBuffer,DWORD sizeOfNewSection,DWO
 //返回值 1成功 0失败
 DWORD extendTheLastSection(IN LPVOID pImageBuffer,DWORD addSizeNew,DWORD characteristics,OUT LPVOID* pNewImageBuffer);
 
+//按fileBuffer扩展最后一个节表
+//pBuffer
+//addSize,增加的字节数
+//pNewBuffer返回成功后newBuffer地址
+//characteristics：具体的权限，如0x60000020
+//返回值 1成功 0失败
+DWORD extendTheLastSectionByFileBuffer(IN LPVOID pFileBuffer,DWORD addSizeNew,DWORD characteristics,OUT LPVOID* pNewFileBuffer);
+
 //合并所有节
 //pBuffer
 //characteristics 合并后只有一个节，要运行，可设置权限为0xE0000020，若还要增加其他节，可设置其他权限，但无法运行
@@ -290,12 +298,24 @@ DWORD getRelocationDirectorySize(LPVOID pFileBuffer);
 //fileRVA 导出表被移动到的RVA
 void removeRelocationDirectory(LPVOID pFileBuffer,DWORD fileRVA);
 
-
-
 //******************************ImportTableDirectory******************************
 //获取导入表所有结构体的大小
 //pFileBuffer
 //返回值 导入表的大小
 DWORD getImageImportDescriptorsSize(LPVOID pFileBuffer);
+
+//获得Dll文件的信息
+//pFileInputPath 文件的路径
+//pFunName 导入表函数名
+//pDllNames,输出Dll文件的名字
+//返回 添加到PE导入表中的需要分配的大小
+DWORD getDllExportInfor(IN char* pFileInputPath,char* pFunName,char** pDllName);
+
+//移动导入表
+//pFileBuffer
+//fileRVA 
+//imageImportDescriptorsSize,要移动的导入表的大小
+//返回 移动后新导入表末尾的下一个字节地址
+DWORD removeImportDirectory(LPVOID pFileBuffer,DWORD fileRVA,DWORD imageImportDescriptorsSize);
 
 #endif
