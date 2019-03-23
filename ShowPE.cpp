@@ -351,7 +351,225 @@ VOID PrintBoundImportTable(LPVOID pFileBuffer)
 	}
 
 
-}	
+}
+
+//打印资源表
+VOID PrintResourceTable(LPVOID pFileBuffer){
+	PIMAGE_DATA_DIRECTORY pDataDirectory=getDataDirectory(pFileBuffer,3);
+
+	//获得资源表在FileBuffer中的Address位置
+	DWORD resourceTableFileBufferAddress =RvaToFileBufferAddress(pFileBuffer,pDataDirectory->VirtualAddress);
+	
+	printResource(pFileBuffer,(DWORD)resourceTableFileBufferAddress,(PIMAGE_RESOURCE_DIRECTORY)resourceTableFileBufferAddress,1);
+}
+
+//递归打印资源表的函数
+//TableAddr:资源表表头的位置
+//pResourceDir
+//index:层数
+VOID printResource(LPVOID pFileBuffer,DWORD TableAddr,PIMAGE_RESOURCE_DIRECTORY pResourceDir,int index){
+	
+	WORD countOfDirectory=0;
+	countOfDirectory=pResourceDir->NumberOfIdEntries+pResourceDir->NumberOfNamedEntries;
+	PIMAGE_RESOURCE_DIRECTORY_ENTRY pResourceDirEntry=(PIMAGE_RESOURCE_DIRECTORY_ENTRY)(pResourceDir+1);
+
+	WORD i=0;
+	
+
+
+	for(i=0;i<countOfDirectory;i++){
+
+		if(pResourceDirEntry->NameIsString){
+			PIMAGE_RESOURCE_DIR_STRING_U pString = (PIMAGE_RESOURCE_DIR_STRING_U)((DWORD)pResourceDir + pResourceDirEntry->NameOffset);
+			WCHAR nodeString[256]={0};
+			wcsncpy(nodeString,pString->NameString,pString->Length);
+				
+			printIndexTitle(index,nodeString);
+
+				
+		}else{
+			DWORD id=pResourceDirEntry->NameOffset;
+			if(index==1){
+				WCHAR nodeString[256]={0};
+				switch(id)
+				{
+					case 1: 
+						wcscpy(nodeString,L"Cursor");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 2: 
+						wcscpy(nodeString,L"Bitmap");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 3:
+						wcscpy(nodeString,L"Icon");
+						printIndexTitle(index,nodeString); 
+						break;	
+					case 4: 
+						wcscpy(nodeString,L"Menu");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 5: 
+						wcscpy(nodeString,L"Dialog");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 6: 
+						wcscpy(nodeString,L"String");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 7:
+						wcscpy(nodeString,L"FontDir");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 8:
+						wcscpy(nodeString,L"Font");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 9: 
+						wcscpy(nodeString,L"Accelerator");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 10: 
+						wcscpy(nodeString,L"RCDATA");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 11:
+						wcscpy(nodeString,L"MessageTable");
+						printIndexTitle(index,nodeString); 
+						break;
+					case 12: 
+						wcscpy(nodeString,L"GroupCursor");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 14: 
+						wcscpy(nodeString,L"GroupIcon");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 16: 
+						wcscpy(nodeString,L"Version");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 17: 
+						wcscpy(nodeString,L"DlgInclude");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 19: 
+						wcscpy(nodeString,L"PlugPlay");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 20: 
+						wcscpy(nodeString,L"VXD");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 21: 
+						wcscpy(nodeString,L"ANICursor");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 22: 
+						wcscpy(nodeString,L"ANIIcon");
+						printIndexTitle(index,nodeString); 
+						break;
+
+					case 23: 
+						wcscpy(nodeString,L"HTML");
+						printIndexTitle(index,nodeString); 
+						break;
+
+
+					default: 
+						printIndexID(index,id); 
+						break;
+				}
+				
+			}else{
+				printIndexID(index,id);
+			}
+			
+		}
+
+		if(pResourceDirEntry->DataIsDirectory==0){
+			
+			PIMAGE_DATA_DIRECTORY  pData = (PIMAGE_DATA_DIRECTORY)((DWORD)TableAddr + (DWORD)pResourceDirEntry->OffsetToData);
+			
+			CHAR infoString[500]={0};
+		
+			DWORD fileOffset=RvaToFileOffset(pFileBuffer,pData->VirtualAddress);
+			sprintf(infoString,"fileOffset:%x,RVA:%x,size:%x",fileOffset,pData->VirtualAddress,pData->Size);
+			printIndexTitle(index+1,infoString);
+			
+			return;
+		
+		}
+
+			printResource(pFileBuffer,TableAddr,(PIMAGE_RESOURCE_DIRECTORY)((DWORD)TableAddr+(DWORD)pResourceDirEntry->OffsetToDirectory),index+1);
+			
+			pResourceDirEntry++;
+		
+	}
+
+}
+
+//打印names
+//index 层数
+//names
+VOID printIndexTitle(int index,WCHAR* names){
+	int i=0;
+	
+	for(i=0;i<index;i++){
+		if(i<index-1){
+			printf("    ");
+		}else{
+			printf("|---");
+		}
+		
+	}
+	wprintf(L"%s\n",names);
+}
+
+//打印names
+//index 层数
+//names
+VOID printIndexTitle(int index,CHAR* names){
+	int i=0;
+	
+	for(i=0;i<index;i++){
+		if(i<index-1){
+			printf("    ");
+		}else{
+			printf("|---");
+		}
+		
+	}
+	printf("%s\n",names);
+}
+
+//打印ID
+//index 层数
+//id
+VOID printIndexID(int index,DWORD id){
+	int i=0;
+	
+	for(i=0;i<index;i++){
+		if(i<index-1){
+			printf("    ");
+		}else{
+			printf("|---");
+		}
+	}
+	if(index==3){
+		printf("CodePage:%d\n",id);
+	}else{
+		printf("ID:%d\n",id);
+	}
+
+}
 
 
 

@@ -1,6 +1,6 @@
 #include "ShowPE.h"
 
-#define FILEPATH_IN      "TestWin32.exe"                         // "D:\\VCWorkspace\\TestDll\\Debug\\TestDll.dll"              //输入文件路径
+#define FILEPATH_IN      "DialogFirst.exe"                         // "D:\\VCWorkspace\\TestDll\\Debug\\TestDll.dll"              //输入文件路径
 #define FILEPATH_OUT     "TestWin32Out.exe"             //输出文件路径
 #define SHELLCODELENGTH   0x12                          //ShellCode长度
 #define MESSAGEBOXADDR    0x7469FDAE                   //MessageBox地址，每次开机都会变化
@@ -51,10 +51,13 @@ void testPrinter(){
 		//PrintRelocationTable(pFileBuffer);
 
 		//打印导入表
-		PrintImportTable(pFileBuffer);
+		//PrintImportTable(pFileBuffer);
 
 		//打印绑定导入表
 		//PrintBoundImportTable(pFileBuffer);
+
+		//打印资源表
+		PrintResourceTable(pFileBuffer);
 
 }
 
@@ -964,7 +967,7 @@ void testInjectImportDirectory(){
 
 int main(int argc, char* argv[]){
 
-	//testPrinter();
+	testPrinter();
 	//testCopyFile();
 	//testRvaToFileOffset();
 	//testFileOffsetToRva();
@@ -979,7 +982,7 @@ int main(int argc, char* argv[]){
 	//testRemoveExportDirectory();
 	//testRemoveRelocationDirectory();
 	//testChangeImageBase(0x500000);
-	testInjectImportDirectory();
+	//testInjectImportDirectory();
 
 	return 0;
 }
